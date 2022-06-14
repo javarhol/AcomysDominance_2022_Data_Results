@@ -55,7 +55,7 @@ levels(data_1$Coder)
 data_1 <- mutate(data_1, minute=round(Start..s./60))
 
 #add sex ID
-sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "sexes")
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
 sex_id$Cage <- as.factor(sex_id$Cage)
 
 data_3 <- left_join(data_1, sex_id, by="Cage")

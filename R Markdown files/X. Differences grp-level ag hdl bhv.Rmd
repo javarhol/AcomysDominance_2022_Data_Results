@@ -1,0 +1,108 @@
+---
+title: "2. Differences ind-level social dom bhv"
+author: "Justin Varholick"
+date: '2022-06-14'
+output: html_document
+---
+
+```{r setup}
+library(tidyverse)
+library(readxl)
+
+library(ggplot2)
+library(ggsci)
+library(cowplot)
+```
+##Extract data from BORIS
+
+1.  Open project file in BORIS
+
+2.  Click the Observations Menu \> Export Events \> aggregated events
+
+3.  Select the observations you wish to export, then all subjects and
+    all behaviors
+
+4.  Click YES for group events into one file
+
+5.  Save as .csv file
+
+One file for gg and one for jvselect all gg, and then only select the
+necessary obs for jv
+
+```{r data import}
+#import data
+data_master <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/Ag_Boris_20211109_fromMaster_B1B2B3.csv")
+not_reliability <- c("jv2", "gg2")
+
+#organize
+data_1 <- data_master %>% 
+  separate(col=Observation.id, into=c("Cage", "Date", "Hour", "Coder"), sep="_") %>% 
+  filter(!Coder %in% not_reliability) %>% 
+  select(Cage, Date, Hour, Coder, Behavior, Start..s.)
+
+head(data_1)
+levels(as.factor(data_1$Coder))
+data_1$Cage <- as.factor(data_1$Cage)
+data_1$Date <- as.factor(data_1$Date)
+data_1$Hour <- as.factor(data_1$Hour)
+data_1$Coder <- as.factor(data_1$Coder)
+levels(data_1$Cage)
+levels(data_1$Date)
+levels(data_1$Hour)
+levels(data_1$Coder)
+data_1 <- mutate(data_1, minute=round(Start..s./60))
+
+#add sex ID
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
+sex_id$Cage <- as.factor(sex_id$Cage)
+
+data_3 <- left_join(data_1, sex_id, by="Cage")
+
+#add inactivity 
+activity <- data_3[,c(1,2,3,8)]
+activity <- unique(activity)
+activity$Minute <- c(levels(data_1$minute))
+
+#limit to night
+lightness <- c("06","07","08","09","10","11","12","13","14","15","16","17","18","19")
+data_night <- data_3 %>% 
+  filter(!Hour %in% lightness) 
+
+not_ag <- c("Side Huddle", "Mounted Huddle", "Activity")
+nightag <- data_night %>% 
+  filter(!Behavior %in% not_ag) %>% 
+  mutate(Behavior2="Agonistic") %>% 
+  group_by(Cage, Sex, GrpSize, Age, Date, Hour, Behavior2) %>% 
+  count() %>% 
+  mutate(prop=(n/15)*100)
+
+
+zeromatrix <- data_night %>% 
+  select(Cage, Sex, GrpSize, Age, Date, Hour) %>% 
+  distinct() %>% 
+  mutate(Behavior2="Agonistic") %>% 
+  mutate(n_prime=0) 
+
+nightag <- left_join(zeromatrix, nightag, by=c("Cage", "Sex", "GrpSize", "Age", "Date", "Hour", "Behavior2")) 
+nightag[is.na(nightag)]<-0 
+nightag <- nightag[,c(1:7,8:9)] 
+
+nightag$Hour <- factor(nightag$Hour,levels=c("20","21","22","23","00","01","02","03","04","05"))
+
+
+```
+##Division of experimental groups
+```{r filter exp groups}
+sexdyads <- nightag %>% 
+  filter(GrpSize==2) %>% 
+  filter(Age=="Young")
+
+grpsize_male <- nightag %>% 
+  filter(Sex=="M")
+
+age_female <- nightag %>% 
+  filter(Sex=="F")
+
+```
+
+

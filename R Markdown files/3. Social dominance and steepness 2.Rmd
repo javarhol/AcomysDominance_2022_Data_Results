@@ -1,0 +1,116 @@
+---
+title: "3. Social dominance and steepness 2"
+author: "Justin Varholick"
+date: '2022-06-15'
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#plots
+library(tidyverse)
+library(ggplot2)
+library(ggbeeswarm)
+library(ggthemr) #devtools::install_github('Mikata-Project/ggthemr')
+library(ggsci)
+library(ggpubr)
+library(ggstance)
+library(cowplot)
+library(readxl)
+library(patchwork)
+
+#stats
+library(psych)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(ggpubr)
+
+ggthemr('flat')
+```
+
+## Social dominance status data
+```{r}
+ind_rank <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/winsbyanimal_edited.csv")
+ind_rank <- ind_rank[,2:6]
+ind_rank <- rename(ind_rank, "Cage"="Cage.x")
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
+sex_id$Cage <- as.factor(sex_id$Cage)
+ind_rank$Cage <- as.factor(ind_rank$Cage)
+ind_rank <- left_join(ind_rank, sex_id, by="Cage")
+
+ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+ind_ds$Cage <- as.factor(ind_ds$Cage)
+ind_ds <- left_join(ind_ds, ind_rank, by=c("AnimalID"="Opponent.1"))
+ind_ds$dom_status <- as.factor(ind_ds$dom_status)
+
+stp <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/steepbycage_edited.csv")
+stp$Cage <- as.factor(stp$Cage)
+stp <- left_join(stp, ind_ds, by=c("Cage"="Cage.x"))
+stp <- stp %>% 
+  mutate(norm_ds=ds+(GrpSize*(GrpSize-1)/2))
+```
+## Social dominance graphs
+```{r sex ds}
+sexdyads <- ind_ds %>% 
+  filter(GrpSize==2) %>% 
+  filter(Age=="Young")
+
+status_plot_sex <- ggplot(sexdyads, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
+  geom_point(size=4, alpha=1) +
+  xlab("")+ ylab("David's Score")+
+  scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2", "#00A087B2","#3C5488B2"))+
+  scale_shape_manual(values=c(19,17,15,18))+
+  guides(color="none", shape="none")+
+  facet_wrap(~Sex, scales="free_x")
+status_plot_sex
+
+```
+
+
+```{r group ds}
+grpsize_male <- ind_ds %>% 
+  filter(Sex=="M")
+
+status_plot_grp <- ggplot(grpsize_male, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
+  geom_point(size=4, alpha=1, position=position_dodge(width=0.25)) +
+  xlab("")+ ylab("David's Score")+
+  scale_color_manual(values=c("#E64B35B2", "#00A087B2", "#4DBBD5B2"))+
+  scale_shape_manual(values=c(19,15,17))+
+  guides(color="none", shape="none")+
+  facet_wrap(~GrpSize, scales="free_x")
+status_plot_grp
+```
+
+```{r age ds}
+age_female <- ind_ds %>% 
+  filter(Sex=="F")
+
+age_female$Age <- factor(age_female$Age, levels=c("Young", "Old"))
+
+status_plot_age <- ggplot(age_female, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
+  geom_point(size=4, alpha=1) +
+  xlab("")+ ylab("David's Score")+
+  scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2","#3C5488B2"))+
+  scale_shape_manual(values=c(19,17,18))+
+  guides(color="none", shape="none")+
+  facet_wrap(~Age, scales="free_x")
+status_plot_age
+```
+
+
+
+```{r sex steep}
+sexdyads_stp <- stp %>% 
+  filter(GrpSize==2) %>% 
+  filter(Age=="Young")
+
+steep_plot_sex <- ggplot(sexdyads_stp, aes(dom_status, norm_ds, color=Sex)) +
+  geom_smooth(method="lm")+
+  #geom_text(x=2, y=1.5, aes(label=round(steepness, digits=2)))+
+  #geom_point(size=4, alpha=1) +
+  xlab("")+ ylab("Norm. David's Score")+
+  facet_wrap(~DumCage, scales="free_x")
+steep_plot_sex
+
+```
+

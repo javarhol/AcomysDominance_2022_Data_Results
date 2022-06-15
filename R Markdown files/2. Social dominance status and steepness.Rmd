@@ -357,8 +357,8 @@ wins_week2
 
 ```{r}
 write.csv(dscore_cage, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal.csv")
-write.csv(wins_rank, "/Volumes/GoogleDrive-105793286447324059497/My Drive/RStudio/Dominance Project/DomRegen_Data_Repository/winsbyanimal.csv")
-write.csv(wins_week2, "/Volumes/GoogleDrive-105793286447324059497/My Drive/RStudio/Dominance Project/DomRegen_Data_Repository/winsbyweek.csv")
-write.csv(dc_cage, "/Volumes/GoogleDrive-105793286447324059497/My Drive/RStudio/Dominance Project/DomRegen_Data_Repository/dcbycage.csv")
+write.csv(wins_rank, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/winsbyanimal.csv")
+write.csv(wins_week2, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/winsbyweek.csv")
+write.csv(dc_cage, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dcbycage.csv")
 write.csv(steep_cage, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/steepbycage.csv")
 ```

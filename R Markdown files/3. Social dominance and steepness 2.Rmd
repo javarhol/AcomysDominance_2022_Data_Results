@@ -56,7 +56,7 @@ sexdyads <- ind_ds %>%
   filter(Age=="Young")
 
 status_plot_sex <- ggplot(sexdyads, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
-  geom_point(size=4, alpha=1) +
+  geom_point(size=3, alpha=1) +
   xlab("")+ ylab("David's Score")+
   scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2", "#00A087B2","#3C5488B2"))+
   scale_shape_manual(values=c(19,17,15,18))+
@@ -72,7 +72,7 @@ grpsize_male <- ind_ds %>%
   filter(Sex=="M")
 
 status_plot_grp <- ggplot(grpsize_male, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
-  geom_point(size=4, alpha=1, position=position_dodge(width=0.25)) +
+  geom_point(size=3, alpha=1, position=position_dodge(width=0.5)) +
   xlab("")+ ylab("David's Score")+
   scale_color_manual(values=c("#E64B35B2", "#00A087B2", "#4DBBD5B2"))+
   scale_shape_manual(values=c(19,15,17))+
@@ -88,7 +88,7 @@ age_female <- ind_ds %>%
 age_female$Age <- factor(age_female$Age, levels=c("Young", "Old"))
 
 status_plot_age <- ggplot(age_female, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
-  geom_point(size=4, alpha=1) +
+  geom_point(size=3, alpha=1) +
   xlab("")+ ylab("David's Score")+
   scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2","#3C5488B2"))+
   scale_shape_manual(values=c(19,17,18))+
@@ -97,20 +97,14 @@ status_plot_age <- ggplot(age_female, aes(as.factor(DumCage), ds, color=dom_stat
 status_plot_age
 ```
 
+```{r grouped plot}
+fig1 <- plot_grid(
+  status_plot_sex, status_plot_grp, status_plot_age,
+  labels = "AUTO", ncol = 1
+)
 
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig1_status_plots.tiff", fig1, units="cm", width = 5, height = 15, device='tiff', dpi=300)
 
-```{r sex steep}
-sexdyads_stp <- stp %>% 
-  filter(GrpSize==2) %>% 
-  filter(Age=="Young")
-
-steep_plot_sex <- ggplot(sexdyads_stp, aes(dom_status, norm_ds, color=Sex)) +
-  geom_smooth(method="lm")+
-  #geom_text(x=2, y=1.5, aes(label=round(steepness, digits=2)))+
-  #geom_point(size=4, alpha=1) +
-  xlab("")+ ylab("Norm. David's Score")+
-  facet_wrap(~DumCage, scales="free_x")
-steep_plot_sex
-
+fig1
 ```
 

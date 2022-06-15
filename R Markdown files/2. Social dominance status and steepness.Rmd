@@ -1,0 +1,364 @@
+---
+title: "2. Social dominance status and steepness"
+author: "Justin Varholick"
+date: '2022-06-15'
+output: html_document
+---
+
+```{r setup}
+
+#plots
+library(tidyverse)
+library(ggplot2)
+library(ggbeeswarm)
+library(ggthemr) #devtools::install_github('Mikata-Project/ggthemr')
+library(ggsci)
+library(ggpubr)
+library(cowplot)
+library(readxl)
+
+#dominance scripts
+library(lubridate)
+library(igraph)
+library(steepness)
+
+#stats
+library(psych)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+
+ggthemr('flat')
+```
+
+```{r jalapic compete dominance scripts, modified by javarhol/author}
+get_wl_dataframe <- function(df){
+  library(dplyr)
+  colnames(df)[1] <- "id1"
+  colnames(df)[2] <- "id2"
+  colnames(df)[3] <- "result"
+  
+  #df[,3] <- gsub("W", "1", df[,3])
+  #df[,3] <- gsub("L", 2, df[,3])
+  
+  #df[,3] <- as.numeric(unlist(df[,3]))
+  
+  #turn into winner-loser dataframe
+  df <- df[!is.na(df[,3]), ]  #get rid of NAs ties if exist
+  a1 <- df %>%
+    dplyr::filter(result==1) %>%
+    dplyr::rename(winner=id1, loser=id2) %>%
+    dplyr::mutate(result="W")
+  
+  a2 <- df %>%
+    dplyr::filter(result==2) %>%
+    dplyr::rename(winner=id2, loser=id1) %>%
+    dplyr::mutate(result="W")
+  
+  a3 <- df %>%
+    dplyr::filter(result==0) %>%
+    dplyr::rename(winner=id1, loser=id2) %>%
+    dplyr::mutate(result="T")
+  df <-  rbind(a1,a2,a3)
+  
+  return(df)
+}
+
+get_wl_matrixold <- function(df){
+    df <- get_wl_dataframe(df)
+    df <- as.matrix(df[,1:2])
+    g<-igraph::graph.edgelist(df)
+    m1 <- igraph::get.adjacency(g, sparse=FALSE)
+    m1 <- m1[order(rownames(m1)), order(colnames(m1))]
+    return(m1)
+}
+
+ds = function(m, norm=FALSE, type="D"){
+  M = as.matrix(m)
+  diag(M)=0
+  M1 = M + t(M)
+  if(type=="D") { M2 = M/M1 - (((M/M1) - 0.5)/(M1 + 1)) }
+  if(type=="P") { M2 = M/M1 }
+  M2[is.na(M2)]=0
+  ds = as.vector(rowSums(M2) + ( M2 %*% rowSums(M2)) - colSums(M2) - t(t(colSums(M2)) %*% M2))
+  if(norm==TRUE){ ds = (ds + rshps(m)[[1]])/nrow(M)}
+  names(ds)=colnames(m)
+  return(ds)
+}
+
+rshps=function(m){
+  M = as.matrix(m)
+  diag(M)=0
+  totalr = (nrow(M)*(nrow(M)-1))/2
+  unk = unknowns(M)
+  v=M[M==t(M)]
+  ties=length(v[v>0])/2
+  twoway= (length( M[M>0 & t(M)>0] )/2) - ties
+  oneway = totalr-unk-ties-twoway
+  return(list('total'=totalr, 'unknowns'=unk, 'ties'=ties, 'twoways'=twoway, 'oneways'=oneway))
+}
+
+unknowns<-function(m){
+  m<-as.matrix(m)
+  unk<-(length(m[m==0 & t(m)==0])-length(diag(m)))/2
+  return(unk)
+}
+
+DScore <- function(x){
+  matrix <- get_wl_matrixold(x)
+  dscore <- as.data.frame(ds(matrix, norm=FALSE, type="D"))
+}
+
+getMinRank <- function(x){
+  matrix <- get_wl_matrixold(x)
+  Wins <- rowSums(matrix)
+  TotalWins <- as.data.frame(Wins)
+  TotalWins$ID <- rownames(TotalWins)
+  TotalWins <- mutate(TotalWins, rank = rank(-Wins, ties.method="min"))
+  TotalWins <- select(TotalWins, ID, Wins, rank)
+  return(TotalWins)
+}
+
+getWins <- function(x){
+  matrix <- get_wl_matrixold(x, ties="keep")
+  Wins <- as.data.frame(matrix)
+  Wins <- filter(Wins, Freq!=0)
+  return(Wins)
+}
+
+DC <- function(x){
+  matrix <- get_wl_matrixold(x)
+  direccons<- as.data.frame(dc_compute(matrix))
+}
+
+dcmatrix=function(Matrix){
+  Matrix=as.matrix(Matrix)
+  diag(Matrix)=0
+  DC=(abs(Matrix-t(Matrix)))/(Matrix+t(Matrix))
+  return(DC)
+}
+
+DC_Matrix <- function(x){
+  Matrix <- get_wl_matrix(x)
+  dcmatrix(Matrix)
+}
+
+dc_compute=function(Matrix){
+  Matrix=as.matrix(Matrix)
+  diag(Matrix)=0
+  N=sum(Matrix)/2
+  DC=sum(abs(Matrix-t(Matrix)))/2/sum(Matrix)
+  S=(Matrix+t(Matrix))/2
+  K=(Matrix-t(Matrix))/2
+  phi=sum(diag(t(K)%*%K))/sum(diag(t(Matrix)%*%Matrix))
+  #phi is the skew-symmetrical index
+  si=1-phi
+  #si is the symmetrical index
+  #result=list(DC=DC,S=S,K=K,phi=phi,si=si)
+  #return(result)
+  return(DC)
+}
+
+triangle <- function(x){
+  m <- get_wl_matrixold(x, ties = "keep")
+  mat <- get_di_matrix(as.matrix(m))
+  #diag(mat)=0
+  g = igraph::graph.adjacency(mat, mode="directed", diag=FALSE)
+  tri=igraph::triad.census(g)
+  return(which(tri == 1))
+}
+
+Steep <- function(x){
+  matrix <- get_wl_matrixold(x)
+  Steepdata <- as.data.frame(getStp(matrix, method = c("Dij","Pij")))
+}
+
+NormDS <- function(x){
+  matrix <- get_wl_matrixold(x)
+  normdsdata <- as.data.frame(getNormDS(matrix, method = c("Dij","Pij")))
+}
+```
+
+##Extract data from BORIS
+1 Open project file in BORIS
+2 Click the Observations Menu > Export Events > aggregated events
+3 Select the observations you wish to export, then all subjects and all behaviors
+4 Click YES for group events into one file
+5 Save as .csv file
+6 edit in excel 
+  1. split by "_" delimiter into 6 columns
+  2. remove "MVI" from data
+  3. Check all dates are actual dates (remove "2020")
+  4. check all hours are actual hours (replace pt1, and shift 21 and 12 which extend to next column)
+  5. check that all columns have the correct data, delete the coder initials data
+
+```{r import data}
+adata <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dominanceevents_MASTER_adj.csv", stringsAsFactors=TRUE) 
+
+#Fixing observation.id inconsistencies...
+adata$Cage <- adata$Observation.id
+adata$Subject <- gsub("Mouse ","", as.factor(adata$Subject))
+adata$Date <- gsub("-Jan","01", adata$Date)
+adata$Modifiers <- gsub("None", "3", adata$Modifiers)
+adata$Date <- gsub("3001", "20200130", adata$Date)
+adata$Date <- gsub("2901", "20200129", adata$Date)
+adata$Date <- gsub("2801", "20200128", adata$Date)
+adata$Date <- gsub("2301", "20200123", adata$Date)
+adata$Date <- gsub("2201", "20200122", adata$Date)
+adata$Date <- gsub("2101", "20200121", adata$Date)
+adata$Date <- gsub("730", "20190730", adata$Date)
+adata$Date <- gsub("731", "20190731", adata$Date)
+adata$Date <- gsub("801", "20190801", adata$Date)
+adata$Date <- gsub("806", "20190806", adata$Date)
+adata$Date <- gsub("807", "20190807", adata$Date)
+adata$Date <- gsub("808", "20190808", adata$Date)
+adata$Date <- gsub("815", "20190815", adata$Date)
+adata$Date <- gsub("816", "20190816", adata$Date)
+adata$Date <- gsub("817", "20190817", adata$Date)
+adata$Date <- gsub("2019020190731", "20190731", adata$Date)
+adata$Date <- gsub("2019020190807", "20190807", adata$Date)
+adata$Date <- gsub("916", "20200916", adata$Date)
+adata$Date <- gsub("922", "20200922", adata$Date)
+adata$Date <- gsub("923", "20200923", adata$Date)
+adata$Date <- gsub("2020020200916", "20200916", adata$Date)
+adata$Date <- gsub("2020020200922", "20200922", adata$Date)
+adata$Date <- gsub("2020020200923", "20200923", adata$Date)
+
+adata$Hour2 <- paste(adata$Hour, "00", sep=":")
+adata$Date <- ymd(adata$Date)
+adata$DateHour <- paste(adata$Date, adata$Hour2, sep=" ")
+adata$DateHour <- as.POSIXct(adata$DateHour, tz="America/New_York")
+adata$DateHour <- ymd_hms(adata$DateHour)
+
+adata$Start..s. <- duration(adata$Start..s., "seconds")
+adata$Stop..s. <- duration(adata$Stop..s., "seconds")
+
+adata$Start <- (adata$DateHour + adata$Start..s.)
+adata$Stop <- (adata$DateHour + adata$Stop..s.)
+
+```
+
+
+## Data description
+There are 3 behavioral categories: Agonistic, Location, and Other. Other refers to inactive or unseen. For dominance ranks you only need the Agonistic behaviors. 
+
+```{r pull agonistic behaviors out, organize for dominance rank}
+ag <- adata %>% 
+  filter(Behavioral.category == "Agonistic") %>% 
+  filter(Behavior!="Fleeing") %>% 
+  filter(Behavior!="Freeze") %>% 
+  within(Opponent.1 <- paste(Cage, Subject, sep="-")) %>% 
+  within(Opponent.2 <- paste(Cage, Modifiers, sep="-")) %>% 
+  within(value <- paste("1")) %>% 
+  select(Opponent.1, Opponent.2, value, Date, Behavior, Cage, Week)
+ag_all <- adata %>% 
+  filter(Behavioral.category!="Location") %>% 
+  within(Opponent.1 <- paste(Cage, Subject, sep="-")) %>% 
+  within(Opponent.2 <- paste(Cage, Modifiers, sep="-")) %>% 
+  within(value <- paste("1")) %>% 
+  select(Cage, Opponent.1, Opponent.2, value, Date, Week, Behavior, Duration..s.)
+```
+
+#### Induced flees, need to be flipped
+- The induced flee behavior was coded so that if mouse 2 ran from mouse 1, then 2 was the subject and 1 was the modifier. In the case that we are observing "wins" (but really should be losses) then we need to flip Opponent.1 and Opponent.2
+```{r}
+ag2 <- ag %>% 
+  filter(Behavior=="Induced Flee") %>% 
+  mutate(Opponent.1f=Opponent.2) %>% 
+  mutate(Opponent.2f=Opponent.1) %>% 
+  select(Opponent.1f, Opponent.2f, value, Date, Behavior, Cage, Week)
+
+ag_wo <- filter(ag, Behavior!="Induced Flee")
+
+ag_adj <- ag2 %>% 
+  mutate(Opponent.1=Opponent.1f) %>% 
+  mutate(Opponent.2=Opponent.2f) %>% 
+  select(Opponent.1, Opponent.2, value, Date, Behavior, Cage, Week) %>% 
+  rbind(ag_wo)
+```
+
+
+```{r split data for runs}
+Daylist <- split(ag_adj, ag_adj$Date)
+Cagelist <- split(ag_adj, ag_adj$Cage)
+
+ag_adj$CageWeek <- paste(ag_adj$Cage, ag_adj$Week, sep="-Week")
+Weeklist <- split(ag_adj, ag_adj$CageWeek)
+
+```
+
+```{r moment of truth}
+dscore_cage <- do.call(rbind, lapply(Cagelist, DScore))
+dscore_cage
+dc_cage <- do.call(rbind, lapply(Cagelist, DC))
+dc_cage
+
+dscore_week <- do.call(rbind, lapply(Weeklist, DScore))
+
+steep_cage <- do.call(rbind, lapply(Cagelist, Steep))
+
+####Wins
+inventory <- read_xlsx("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet="Sheet2")
+
+wins <- ag_adj %>% 
+  group_by(Opponent.1) %>% 
+  count(value)
+wins <- wins %>% 
+  left_join(ag_adj, by="Opponent.1") %>% 
+  mutate(wins=n) %>% 
+  select(Cage, Opponent.1, wins) %>% 
+  distinct()
+inventory2 <- inventory %>% 
+  filter(Week=="1") %>% 
+  mutate(Opponent.1=AnimalID) %>% 
+  mutate(Cage=CageID) %>% 
+  select(Opponent.1, Cage)
+wins_rank <- inventory2 %>% 
+  left_join(wins, by="Opponent.1") %>% 
+  mutate_all(~replace(., is.na(.), 0)) %>% 
+  group_by(Cage.x) %>% 
+  mutate(dom_rank=rank(-wins, ties.method="average")) %>% 
+  select(Opponent.1, Cage.x, wins, dom_rank)
+
+wins_rank$dom_rank <- gsub("1.5", "0", wins_rank$dom_rank)
+wins_rank$dom_status <- as.factor(wins_rank$dom_rank)
+wins_rank$dom_status <- gsub("0", "Unclear", wins_rank$dom_status)
+wins_rank$dom_status <- gsub("1", "Dominant", wins_rank$dom_status)
+wins_rank$dom_status <- gsub("2", "Subordinate", wins_rank$dom_status)
+wins_rank$dom_status <- gsub("3", "Subordinate", wins_rank$dom_status)
+
+wins_rank
+
+wins_week <- ag_adj %>% 
+  group_by(Opponent.1, Week) %>% 
+  count(value) %>% 
+  mutate(wins=n)
+inventory3 <- inventory %>% 
+  mutate(Opponent.1=AnimalID) %>% 
+  mutate(Cage=CageID) %>% 
+  select(Opponent.1, Cage, Week)
+wins_week2 <- inventory3 %>% 
+  full_join(wins_week, by=c("Opponent.1", "Week")) %>% 
+  mutate_all(~replace(., is.na(.), 0)) %>% 
+  group_by(Cage, Week) %>% 
+  mutate(dom_rank=rank(-wins, ties.method="average")) %>% 
+  select(Opponent.1, Cage, Week, wins, dom_rank)
+
+wins_week2$dom_rank <- gsub("1.5", "0", wins_week2$dom_rank)
+wins_week2$dom_status <- as.factor(wins_week2$dom_rank)
+wins_week2$dom_status <- gsub("1", "Dominant", wins_week2$dom_status)
+wins_week2$dom_status <- gsub("2.5", "Subordinate", wins_week2$dom_status)
+wins_week2$dom_status <- gsub("2", "Subordinate", wins_week2$dom_status)
+wins_week2$dom_status <- gsub("3", "Subordinate", wins_week2$dom_status)
+wins_week2$dom_status <- gsub("0", "Unclear", wins_week2$dom_status)
+
+wins_week2
+```
+
+```{r}
+write.csv(dscore_cage, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal.csv")
+write.csv(wins_rank, "/Volumes/GoogleDrive-105793286447324059497/My Drive/RStudio/Dominance Project/DomRegen_Data_Repository/winsbyanimal.csv")
+write.csv(wins_week2, "/Volumes/GoogleDrive-105793286447324059497/My Drive/RStudio/Dominance Project/DomRegen_Data_Repository/winsbyweek.csv")
+write.csv(dc_cage, "/Volumes/GoogleDrive-105793286447324059497/My Drive/RStudio/Dominance Project/DomRegen_Data_Repository/dcbycage.csv")
+write.csv(steep_cage, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/steepbycage.csv")
+```

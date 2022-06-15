@@ -16,6 +16,7 @@ library(ggplot2)
 library(ggsci)
 library(cowplot)
 library(ggthemr)
+library(stringr)
 
 ggthemr('flat')
 ```
@@ -155,10 +156,14 @@ sexdyads_ag <- sexdyads_zeros %>%
 
 sexdyads_ag$Behavior <- factor(sexdyads_ag$Behavior, levels=c("Chasing", "Mounting", "Attacking", "Stealing", "Fleeing", "Induced Flee", "Freeze", "Unseen", "Inactive"))
 
-ggplot(sexdyads_ag, aes(Behavior, n, fill=Sex))+
+sexdyads_ag$Behavior <- str_wrap(sexdyads_ag$Behavior, width=10)
+
+
+sexplot <- ggplot(sexdyads_ag, aes(Behavior, n, fill=Sex))+
   geom_boxplot()+
   xlab("")+
   scale_fill_npg()
+sexplot
   
 ```
 ```{r sex effect chasing}
@@ -223,11 +228,14 @@ grpsize_ag <- grpsize_zeros %>%
 
 grpsize_ag$Behavior <- factor(grpsize_ag$Behavior, levels=c("Chasing", "Mounting", "Attacking", "Stealing", "Fleeing", "Induced Flee", "Freeze", "Unseen", "Inactive"))
 
-ggplot(grpsize_ag, aes(Behavior, n, fill=as.factor(GrpSize)))+
+grpsize_ag$Behavior <- str_wrap(grpsize_ag$Behavior, width=10)
+
+grpsize_plot <- ggplot(grpsize_ag, aes(Behavior, n, fill=as.factor(GrpSize)))+
   geom_boxplot()+
   xlab("")+
   scale_fill_npg()+
-  labs(fill="Group Size")
+  labs(fill="Group \nSize")
+grpsize_plot
   
 ```
 #Age effects, Female
@@ -269,10 +277,14 @@ age_ag <- age_zeros %>%
 
 age_ag$Behavior <- factor(age_ag$Behavior, levels=c("Chasing", "Mounting", "Attacking", "Stealing", "Fleeing", "Induced Flee", "Freeze", "Unseen", "Inactive"))
 
-ggplot(age_ag, aes(Behavior, n, fill=Age))+
+age_ag$Behavior <- str_wrap(age_ag$Behavior, width=10)
+
+age_plot <- ggplot(age_ag, aes(Behavior, n, fill=Age))+
   geom_boxplot()+
   xlab("")+
   scale_fill_npg()
+
+age_plot
 ```
 
 ```{r age effect induced flee}
@@ -310,3 +322,15 @@ in_o <- age_ag %>%
 
 wilcox.test(in_y$n, in_o$n, paired=F)
 ```
+```{r grouped plot}
+fig1 <- ggdraw() + 
+  draw_plot(sexplot, x=0, y=.66, width=1, height=.33) +
+  draw_plot(grpsize_plot, x=0, y=.33, width=1, height=.33)+
+  draw_plot(age_plot, x=0, y=0, width=1, height=.33)+
+  draw_plot_label(label=c("A","B","C"), size=12, x=c(0,0,0), y=c(1,.66,.33))
+
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig1_ind_ag_bhv.tiff", fig1, units="cm", width = 17, height = 14, device='tiff', dpi=300)
+
+fig1
+```
+

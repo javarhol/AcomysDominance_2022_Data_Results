@@ -43,62 +43,79 @@ stp <- stp %>%
   mutate(norm_ds=ds+(GrpSize*(GrpSize-1)/2))
 ```
 ## Social dominance graphs
-```{r sex ds}
-sexdyads <- ind_ds %>% 
+```{r f ds}
+sexdyads_f <- ind_ds %>% 
   filter(GrpSize==2) %>% 
-  filter(Age=="Young")
+  filter(Age=="Young") %>% 
+  filter(Sex=="F")
 
-status_plot_sex <- ggplot(sexdyads, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
+status_plot_f <- ggplot(sexdyads_f, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
   geom_point(size=3, alpha=1) +
   xlab("")+ ylab("David's Score")+
   scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2", "#00A087B2","#3C5488B2"))+
   scale_shape_manual(values=c(19,17,15,18))+
   guides(color="none", shape="none")+
-  facet_wrap(~Sex, scales="free_x")
-status_plot_sex
+  ggtitle("Young Female Dyads")
+status_plot_f
+
+```
+```{r m ds}
+sexdyads_m <- ind_ds %>% 
+  filter(GrpSize==2) %>% 
+  filter(Sex=="M")
+
+status_plot_m <- ggplot(sexdyads_m, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
+  geom_point(size=3, alpha=1) +
+  xlab("")+ ylab("David's Score")+
+  scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2", "#00A087B2","#3C5488B2"))+
+  scale_shape_manual(values=c(19,17,15,18))+
+  guides(color="none", shape="none")+
+  ggtitle("Young Male Dyads")
+status_plot_m
 
 ```
 
 
 ```{r group ds}
-grpsize_male <- ind_ds %>% 
-  filter(Sex=="M")
+grpsize_male_3 <- ind_ds %>% 
+  filter(Sex=="M") %>% 
+  filter(GrpSize=="3")
 
-status_plot_grp <- ggplot(grpsize_male, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
+status_plot_3 <- ggplot(grpsize_male_3, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
   geom_point(size=3, alpha=1, position=position_dodge(width=0.5)) +
   xlab("")+ ylab("David's Score")+
   scale_color_manual(values=c("#E64B35B2", "#00A087B2", "#4DBBD5B2"))+
   scale_shape_manual(values=c(19,15,17))+
   guides(color="none", shape="none")+
-  facet_wrap(~GrpSize, scales="free_x")
-status_plot_grp
+  ggtitle("Young Male Triads")
+status_plot_3
 ```
 
 ```{r age ds}
-age_female <- ind_ds %>% 
-  filter(Sex=="F")
+age_female_old <- ind_ds %>% 
+  filter(Sex=="F") %>% 
+  filter(Age=="Old")
 
-age_female$Age <- factor(age_female$Age, levels=c("Young", "Old"))
-
-status_plot_age <- ggplot(age_female, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
+status_plot_old <- ggplot(age_female_old, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
   geom_point(size=3, alpha=1) +
   xlab("")+ ylab("David's Score")+
-  scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2","#3C5488B2"))+
-  scale_shape_manual(values=c(19,17,18))+
+  scale_color_manual(values="#3C5488B2")+
+  scale_shape_manual(values=18)+
   guides(color="none", shape="none")+
-  facet_wrap(~Age, scales="free_x")
-status_plot_age
+  ggtitle("Old Female Dyads")
+status_plot_old
 ```
 
 ```{r grouped plot}
 fig1 <- plot_grid(
-  status_plot_sex, status_plot_grp, status_plot_age,
-  labels = "AUTO", ncol = 1
+  status_plot_f, status_plot_m,
+  status_plot_old, status_plot_3,
+  labels = "AUTO", ncol = 2
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig1_status_plots.tiff", fig1, units="cm", width = 5, height = 15, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig1_status_plots.tiff", fig1, units="cm", width = 15, height = 15, device='tiff', dpi=300)
 
-fig1
+ fig1
 ```
 
 ##Analyses were done by hand in reference to Siegel and Castellan 1988, "Nonparametric Statistics for the Behavioral Sciences" pg 130

@@ -108,3 +108,4 @@ ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Result
 fig1
 ```
 
+##Analyses were done by hand in reference to Siegel and Castellan 1988, "Nonparametric Statistics for the Behavioral Sciences" pg 130

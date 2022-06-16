@@ -18,30 +18,23 @@ library(cowplot)
 library(readxl)
 library(patchwork)
 
-#stats
-library(psych)
-library(lme4)
-library(lmerTest)
-library(MuMIn)
-library(ggpubr)
-
 ggthemr('flat')
 ```
 
 ## Social dominance status data
 ```{r}
-ind_rank <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/winsbyanimal_edited.csv")
-ind_rank <- ind_rank[,2:6]
-ind_rank <- rename(ind_rank, "Cage"="Cage.x")
+ind_rank_wins <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/winsbyanimal_edited.csv")
+ind_rank_wins <- ind_rank_wins[,2:6]
+ind_rank_wins <- rename(ind_rank_wins, "Cage"="Cage.x")
 sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
 sex_id$Cage <- as.factor(sex_id$Cage)
-ind_rank$Cage <- as.factor(ind_rank$Cage)
-ind_rank <- left_join(ind_rank, sex_id, by="Cage")
+ind_rank_wins$Cage <- as.factor(ind_rank_wins$Cage)
+ind_rank_wins <- left_join(ind_rank_wins, sex_id, by="Cage")
 
 ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
 ind_ds$Cage <- as.factor(ind_ds$Cage)
 ind_ds <- left_join(ind_ds, ind_rank, by=c("AnimalID"="Opponent.1"))
-ind_ds$dom_status <- as.factor(ind_ds$dom_status)
+ind_ds$dom_status_ds <- as.factor(ind_ds$dom_status_ds)
 
 stp <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/steepbycage_edited.csv")
 stp$Cage <- as.factor(stp$Cage)
@@ -55,7 +48,7 @@ sexdyads <- ind_ds %>%
   filter(GrpSize==2) %>% 
   filter(Age=="Young")
 
-status_plot_sex <- ggplot(sexdyads, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
+status_plot_sex <- ggplot(sexdyads, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
   geom_point(size=3, alpha=1) +
   xlab("")+ ylab("David's Score")+
   scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2", "#00A087B2","#3C5488B2"))+
@@ -71,7 +64,7 @@ status_plot_sex
 grpsize_male <- ind_ds %>% 
   filter(Sex=="M")
 
-status_plot_grp <- ggplot(grpsize_male, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
+status_plot_grp <- ggplot(grpsize_male, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
   geom_point(size=3, alpha=1, position=position_dodge(width=0.5)) +
   xlab("")+ ylab("David's Score")+
   scale_color_manual(values=c("#E64B35B2", "#00A087B2", "#4DBBD5B2"))+
@@ -87,7 +80,7 @@ age_female <- ind_ds %>%
 
 age_female$Age <- factor(age_female$Age, levels=c("Young", "Old"))
 
-status_plot_age <- ggplot(age_female, aes(as.factor(DumCage), ds, color=dom_status, shape=dom_status)) +
+status_plot_age <- ggplot(age_female, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
   geom_point(size=3, alpha=1) +
   xlab("")+ ylab("David's Score")+
   scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2","#3C5488B2"))+

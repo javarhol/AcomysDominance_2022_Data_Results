@@ -5,26 +5,143 @@ date: '2022-06-16'
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup}
+library(tidyverse)
+library(ggalluvial)
 ```
 
-## R Markdown
+```{r}
+week_rank <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebweek_edited.csv")
+week_rank$Cage <- as.factor(week_rank$Cage)
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
+sex_id$Cage <- as.factor(sex_id$Cage)
+week_rank <- left_join(week_rank, sex_id, by="Cage")
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+week_rank <- rename(week_rank, "Opponent.1"=AnimalID)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+week_rank <- week_rank %>%
+  mutate(dom_status_num=case_when(dom_status_ds=="Dominant"~3,
+                                  dom_status_ds=="Subordinate"~1,
+                                  dom_status_ds=="Subdominant"~2,
+                                  dom_status_ds=="Unclear"~0))
 
-```{r cars}
-summary(cars)
+
+stability <- week_rank %>% 
+  select(Opponent.1, Cage, Sex, Week, dom_status_num) %>% 
+  spread(Week, dom_status_num) %>% 
+  mutate(Week12=ifelse(`Week1`==`Week2`,1,0))%>% 
+  mutate(Week23=ifelse(`Week2`==`Week3`,1,0)) %>% 
+  mutate(stab_status=ifelse(Week12+Week23==2,"Stable","Unstable"))
+
+week_rank_stab <- stability %>% 
+  select(Opponent.1, stab_status) %>% 
+  left_join(week_rank, by="Opponent.1") %>% 
+  mutate(stab_status2=ifelse(dom_status_ds=="Unclear","Unclear",stab_status)) %>% 
+  mutate(stab_status2=ordered(stab_status2, levels=c("Stable", "Unstable", "Unclear")))
+
+#reassign cages 922587, 927693, 941702 as stable because they just didn't engage in agonistic behavior, not necessarily unstable
+reassign <- c("922587", "927693", "941702")
+
+week_rank_stab_1 <- week_rank_stab %>% 
+  filter(Cage %in% reassign) %>% 
+  mutate(stab_status="Stable")
+
+week_rank_stab_2 <- week_rank_stab %>% 
+  filter(!Cage %in% reassign)
+
+week_rank_stab <- rbind(week_rank_stab_1, week_rank_stab_2)
+
+##stab_status_2 is adding Unclear to stability
+
+rank_stab <- stability %>% 
+  select(Opponent.1, stab_status) %>% 
+  left_join(ind_rank, by="Opponent.1") %>% 
+  mutate(stab_status2=ifelse(dom_status=="Unclear","Unclear", stab_status)) %>% 
+  mutate(stab_status2=ordered(stab_status2, levels=c("Stable", "Unstable", "Unclear")))
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r organize data for river plot}
+river_data <- week_rank_stab %>% 
+  mutate(dom_status_abb=case_when(dom_status_ds=="Dominant"~"Dom",
+                                  dom_status_ds=="Subordinate"~"Subor",
+                                  dom_status_ds=="Subdominant"~"SubD",
+                                  dom_status_ds=="Unclear"~"Unc"))%>% 
+  select(Opponent.1, stab_status, Sex, GrpSize, Age, Week, dom_status_abb) %>% 
+  spread(Week, dom_status_abb)
+river_data$Week1 <- as.factor(river_data$Week1)
+river_data$Week2 <- as.factor(river_data$Week2)
+river_data$Week3 <- as.factor(river_data$Week3)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r river plot sex}
+
+sexdyads <- river_data %>% 
+  filter(GrpSize==2) %>% 
+  filter(Age=="Young")
+
+river_plot_sex <- ggplot(sexdyads, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
+  geom_alluvium(aes(fill=stab_status))+
+  geom_stratum()+
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits=c("1", "2", "3"), expand=c(.05,.05))+
+  xlab("")+
+  scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
+  scale_fill_npg()+
+  theme(legend.position = "bottom")+
+  labs(fill="Stability")+
+  facet_wrap(~Sex)+
+  guides(fill="none")
+
+river_plot_sex
+```
+
+```{r}
+grpsize_male <- river_data %>% 
+  filter(Sex=="M")
+
+river_plot_grp <- ggplot(grpsize_male, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
+  geom_alluvium(aes(fill=stab_status))+
+  geom_stratum()+
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits=c("1", "2", "3"), expand=c(.05,.05))+
+  xlab(" ")+
+  scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
+  scale_fill_npg()+
+  theme(legend.position = "bottom")+
+  labs(fill="Stability")+
+  facet_wrap(~GrpSize)+
+  guides(fill="none")
+river_plot_grp
+```
+```{r}
+age_female <- river_data %>% 
+  filter(Sex=="F")
+
+river_plot_age <- ggplot(age_female, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
+  geom_alluvium(aes(fill=stab_status))+
+  geom_stratum()+
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits=c("1", "2", "3"), expand=c(.05,.05))+
+  xlab("Week")+
+  scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
+  scale_fill_npg()+
+  theme(legend.position = "bottom")+
+  labs(fill="Stability")+
+  facet_wrap(~Age)
+river_plot_age
+```
+```{r grouped plot}
+fig2 <- plot_grid(
+  river_plot_sex, river_plot_grp, river_plot_age,
+  labels = "AUTO", ncol = 1
+)
+
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.tiff", fig2, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+
+  fig2
+```
+```
+

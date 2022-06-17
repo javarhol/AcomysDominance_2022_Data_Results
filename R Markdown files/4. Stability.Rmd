@@ -76,13 +76,14 @@ river_data$Week3 <- as.factor(river_data$Week3)
 ```
 
 
-```{r river plot sex}
+```{r river plot f}
 
-sexdyads <- river_data %>% 
+sexdyads_f <- river_data %>% 
   filter(GrpSize==2) %>% 
-  filter(Age=="Young")
+  filter(Age=="Young") %>% 
+  filter(Sex=="F")
 
-river_plot_sex <- ggplot(sexdyads, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
+river_plot_f <- ggplot(sexdyads_f, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
   geom_alluvium(aes(fill=stab_status))+
   geom_stratum()+
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
@@ -90,19 +91,40 @@ river_plot_sex <- ggplot(sexdyads, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
   xlab("")+
   scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
   scale_fill_npg()+
-  theme(legend.position = "bottom")+
+  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
   labs(fill="Stability")+
-  facet_wrap(~Sex)+
-  guides(fill="none")
+  guides(fill="none")+
+  ggtitle("Young Female Dyads")
+river_plot_f
+```
+```{r river plot m}
+sexdyads_m <- river_data %>% 
+  filter(GrpSize==2) %>% 
+  filter(Age=="Young") %>% 
+  filter(Sex=="M")
 
-river_plot_sex
+river_plot_m <- ggplot(sexdyads_m, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
+  geom_alluvium(aes(fill=stab_status))+
+  geom_stratum()+
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits=c("1", "2", "3"), expand=c(.05,.05))+
+  xlab("")+
+  scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
+  scale_fill_npg()+
+  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
+  labs(fill="Stability")+
+  guides(fill="none")+
+  ggtitle("Young Male Dyads")
+
+river_plot_m
 ```
 
 ```{r}
-grpsize_male <- river_data %>% 
-  filter(Sex=="M")
+grpsize_3 <- river_data %>% 
+  filter(Sex=="M") %>% 
+  filter(GrpSize=="3")
 
-river_plot_grp <- ggplot(grpsize_male, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
+river_plot_3 <- ggplot(grpsize_3, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
   geom_alluvium(aes(fill=stab_status))+
   geom_stratum()+
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
@@ -110,17 +132,18 @@ river_plot_grp <- ggplot(grpsize_male, aes(axis1=Week1, axis2=Week2, axis3=Week3
   xlab(" ")+
   scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
   scale_fill_npg()+
-  theme(legend.position = "bottom")+
+  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
   labs(fill="Stability")+
-  facet_wrap(~GrpSize)+
-  guides(fill="none")
-river_plot_grp
+  guides(fill="none")+
+  ggtitle("Young Male Triads")
+river_plot_3
 ```
 ```{r}
-age_female <- river_data %>% 
-  filter(Sex=="F")
+age_old <- river_data %>% 
+  filter(Sex=="F") %>% 
+  filter(Age=="Old")
 
-river_plot_age <- ggplot(age_female, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
+river_plot_old <- ggplot(age_old, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
   geom_alluvium(aes(fill=stab_status))+
   geom_stratum()+
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
@@ -128,15 +151,16 @@ river_plot_age <- ggplot(age_female, aes(axis1=Week1, axis2=Week2, axis3=Week3))
   xlab("Week")+
   scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
   scale_fill_npg()+
-  theme(legend.position = "bottom")+
-  labs(fill="Stability")+
-  facet_wrap(~Age)
-river_plot_age
+  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
+  guides(fill="none")+
+  ggtitle("Old Female Dyads")
+river_plot_old
 ```
 ```{r grouped plot}
 fig2 <- plot_grid(
-  river_plot_sex, river_plot_grp, river_plot_age,
-  labels = "AUTO", ncol = 1
+  river_plot_f, river_plot_m,
+  river_plot_old, river_plot_3,
+  labels = "AUTO", ncol = 2
 )
 
 ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.tiff", fig2, units="cm", width = 15, height = 15, device='tiff', dpi=300)

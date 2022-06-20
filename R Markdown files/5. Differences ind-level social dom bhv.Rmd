@@ -19,6 +19,20 @@ library(ggthemr)
 library(stringr)
 
 ggthemr('flat')
+
+#custom functions
+small_wilcox <- function(group1, group2, grouping_variable, prediction, data){
+  library(dplyr)
+  data_temp <- dplyr::mutate(data, ranks=rank({{ prediction }}))
+  data_gp1 <- dplyr::filter(data_temp, {{ grouping_variable }}=={{ group1 }})
+  data_gp2 <- dplyr::filter(data_temp, {{ grouping_variable }}=={{ group2 }})
+  group1sum <- sum(data_gp1$ranks)
+  group2sum <- sum(data_gp2$ranks)
+  total_n <- dplyr::count(data, {{ grouping_variable }})
+  
+  return(c(group1sum, group2sum, total_n))
+}
+
 ```
 ##Extract data from BORIS
 1 Open project file in BORIS
@@ -80,7 +94,7 @@ adata$Stop <- (adata$DateHour + adata$Stop..s.)
 ag <- adata %>% 
   within(Opponent.1 <- paste(Cage, Subject, sep="-")) %>% 
   within(value <- paste("1")) %>% 
-  select(Opponent.1, value, Date, Behavior, Behavioral.category, Modifiers, Cage, Week)
+  select(Opponent.1, value, Date, Behavior, Behavioral.category, Modifiers, Cage, Week, Start, Stop)
 
 locations <- ag %>% 
   filter(Behavioral.category=="Location") %>% 
@@ -92,7 +106,7 @@ locations <- ag %>%
 
 ag <- ag %>% 
   filter(Behavioral.category!="Location") %>% 
-  select(Opponent.1, value, Date, Behavior, Behavioral.category, Cage, Week)
+  select(Opponent.1, value, Date, Behavior, Behavioral.category, Cage, Week, Start, Stop)
 ag <- rbind(ag, locations)
 
 #add independent variables
@@ -108,269 +122,225 @@ ind_ds <- rename(ind_ds, "Opponent.1"=AnimalID)
 
 ag <- left_join(ag, ind_ds, by=c("Opponent.1", "Cage"))
 ```
-##Division of experimental groups
-```{r filter exp groups}
-sexdyads <- ag %>% 
-  filter(GrpSize==2) %>% 
-  filter(Age=="Young")
+##Do dominants engage in more frequency of chasing than other ag off bhvs?
+```{r}
 
-grpsize_male <- ag %>% 
-  filter(Sex=="M")
+other_ag <- c("Attacking", "Mounting", "Stealing")
 
-age_female <- ag %>% 
-  filter(Sex=="F")
+dom_data1 <- ag %>% 
+  filter(dom_status_ds=="Dominant") %>% 
+  filter(Behavior %in% other_ag) %>% 
+  select(Opponent.1, Date, Start, Stop, Cage, Sex, GrpSize, Age, DumCage, dom_status_ds, value) %>% 
+  within(Behavior <- paste("Other offensive \nBehaviors"))
 
-```
+dom_data2 <- ag %>% 
+  filter(dom_status_ds=="Dominant") %>% 
+  filter(Behavior=="Chasing") %>% 
+  select(Opponent.1, Date, Start, Stop, Cage, Sex, GrpSize, Age, DumCage, dom_status_ds, value, Behavior)
 
-##Sex Effects
-```{r plot sex effects}
-#data organization
-sexdyads <- ag %>% 
-  filter(GrpSize==2) %>% 
-  filter(Age=="Young") 
+dom_data <- rbind(dom_data1, dom_data2)
 
-sexdyads <- sexdyads %>% 
-  group_by(Cage, Opponent.1, Sex, dom_status_ds, Behavior) %>% 
+dom_data <- dom_data %>% 
+  group_by(Opponent.1, Cage, Sex, GrpSize, Age, DumCage, Behavior) %>% 
   count(value)
 
-zeromatrix <- ag %>%
-  filter(GrpSize==2) %>% 
-  filter(Age=="Young") %>% 
-  select(Opponent.1, Sex, Cage, dom_status_ds) %>% 
+zeromatrix <- ag %>% 
+  filter(dom_status_ds=="Dominant") %>% 
+  select(Opponent.1, Cage, Sex, GrpSize, Age, DumCage) %>% 
   unique() %>% 
   mutate(Chasing=0) %>% 
-  mutate(Mounting=0) %>% 
-  mutate(Attacking=0) %>% 
-  mutate(Stealing=0) %>% 
-  mutate(Fleeing=0) %>% 
-  mutate(`Induced Flee`=0) %>%
-  mutate(Freeze=0) %>% 
-  mutate(Unseen=0) %>% 
-  mutate(Inactive=0) %>% 
-  mutate(`Top-Left`=0) %>% 
-  mutate(`Top-Right`=0) %>% 
-  mutate(`Bottom-Left`=0) %>% 
-  mutate(`Bottom-Right`=0) %>% 
-  gather("Behavior", "n_prime", 5:17)
+  mutate(`Other offensive \nBehaviors`=0) %>% 
+  gather("Behavior", "n_prime", 7:8)
 
-sexdyads_zeros <- left_join(zeromatrix, sexdyads, by=(c("Opponent.1", "Sex", "dom_status_ds", "Cage", "Behavior")))
-sexdyads_zeros[is.na(sexdyads_zeros)]<-0
+dom_data <- left_join(zeromatrix, dom_data, by=c("Opponent.1", "Cage", "Sex", "GrpSize", "Age", "DumCage", "Behavior"))
+dom_data[is.na(dom_data)]<-0
+dom_data <- dom_data[,c(1:7,10)]
+dom_datax <- spread(dom_data, Behavior, n)
+dom_datax <- mutate(dom_datax, test=abs(Chasing-`Other offensive \nBehaviors`))
+dom_datax <- mutate(dom_datax, rank=rank(test))
 
-sexdyads_ag <- sexdyads_zeros %>% 
-  filter(Behavior!="Top-Right") %>% 
-  filter(Behavior!="Top-Left") %>% 
-  filter(Behavior!="Bottom-Right") %>% 
-  filter(Behavior!="Bottom-Left")
+sum(dom_datax$rank)-2
 
-sexdyads_ag1 <- sexdyads_ag %>% 
-  filter(Behavior=="Induced Flee") %>% 
-  mutate(Behavior="Induced \nFlee")
-
-sexdyads_ag2 <- sexdyads_ag %>% 
-  filter(Behavior!="Induced Flee")
-
-sexdyads_ag <- rbind(sexdyads_ag1, sexdyads_ag2)
-
-sexdyads_ag$Behavior <- factor(sexdyads_ag$Behavior, levels=c("Chasing", "Mounting", "Attacking", "Stealing", "Fleeing", "Induced \nFlee", "Freeze", "Unseen", "Inactive"))
+#43, 9, p=0.0059
+```
+```{r plot}
+chase_plot <- ggplot(dom_data, aes(Behavior, n, group=as.factor(DumCage), color=Sex, fill=Sex)) +
+  geom_point(size=3) + geom_line() +
+  scale_color_npg() + scale_fill_npg()+
+  ylab("total frequency") + xlab("")
+chase_plot
+```
+#Is chasing higher in males than females?
+```{r}
+dom_chase <- filter(dom_data, Behavior=="Chasing")
+small_wilcox("M", "F", Sex, n, dom_chase)
+#W=16 (3, 9) p=0.300
+```
+#Higher in triads?
+```{r}
+group_chase <- filter(dom_chase, Sex=="M")
+small_wilcox("2", "3", GrpSize, n, group_chase)
+#W=8(3,3) p = 0.200
 ```
 
 
-```{r plot sex effects}
-#subset out dominants
-sexdyads_dom <- filter(sexdyads_ag, dom_status_ds=="Dominant")
+##Do subordinates engage in higher levels of fleeing than induced flee (displacement)?
+```{r}
+freeze <- filter(ag, Behavior=="Freeze") #(only 4 instances)
 
-off <- c("Chasing", "Attacking", "Mounting", "Stealing")
+def <- c("Fleeing", "Induced Flee")
+
+sub_data <- ag %>% 
+  filter(dom_status_ds=="Subordinate") %>% 
+  filter(Behavior %in% def) %>% 
+  group_by(Opponent.1, Cage, Sex, GrpSize, Age, DumCage, Behavior) %>% 
+  count(value)
+
+zeromatrix <- ag %>% 
+  filter(dom_status_ds=="Subordinate") %>% 
+  select(Opponent.1, Cage, Sex, GrpSize, Age, DumCage) %>% 
+  unique() %>% 
+  mutate(Fleeing=0) %>% 
+  mutate(`Induced Flee`=0) %>% 
+  gather("Behavior", "n_prime", 7:8)
+
+sub_data <- left_join(zeromatrix, sub_data, by=c("Opponent.1", "Cage", "Sex", "GrpSize", "Age", "DumCage", "Behavior"))
+sub_data[is.na(sub_data)]<-0
+sub_data <- sub_data[,c(1:7,10)]
+sub_datax <- spread(sub_data, Behavior, n)
+sub_datax <- mutate(sub_datax, test=abs(Fleeing-`Induced Flee`))
+sub_datax <- mutate(sub_datax, rank=rank(test))
+
+#sum of t- = 5
+sum(sub_datax$rank)-5
+
+#40, 9, 0.0195
+```
+
+```{r}
+def <- c("Induced Flee", "Freeze")
+
+sub_data <- ag %>% 
+  filter(dom_status_ds=="Subordinate") %>% 
+  filter(Behavior %in% def) %>% 
+  group_by(Opponent.1, Cage, Sex, DumCage, Behavior) %>% 
+  count(value)
+
+zeromatrix <- ag %>% 
+  filter(dom_status_ds=="Subordinate") %>% 
+  select(Opponent.1, Cage, Sex, DumCage) %>% 
+  unique() %>% 
+  mutate(`Induced Flee`=0) %>% 
+  mutate(Freeze=0) %>% 
+  gather("Behavior", "n_prime", 5:6)
+
+sub_data <- left_join(zeromatrix, sub_data, by=c("Opponent.1", "Cage", "Sex", "DumCage", "Behavior"))
+sub_data[is.na(sub_data)]<-0
+sub_data <- sub_data[,c(1:5,8)]
+sub_datax <- spread(sub_data, Behavior, n)
+sub_datax <- mutate(sub_datax, test=abs(`Induced Flee`-Freeze))
+sub_datax <- mutate(sub_datax, rank=rank(test))
+
+#no t-
+sum(sub_datax$rank)
+
+#45, 9, 0.0020
+```
+```{r}
 def <- c("Fleeing", "Induced Flee", "Freeze")
 
-sexplot <- ggplot(sexdyads_dom, aes(Behavior, n, fill=Sex))+
-  geom_boxplot()+
-  xlab("")+
-  scale_fill_npg()+
-  theme(axis.text.x=element_blank())
-sexplot
+sub_data <- ag %>% 
+  filter(dom_status_ds=="Subordinate") %>% 
+  filter(Behavior %in% def) %>% 
+  group_by(Opponent.1, Cage, Sex, DumCage, Behavior) %>% 
+  count(value)
+
+zeromatrix <- ag %>% 
+  filter(dom_status_ds=="Subordinate") %>% 
+  select(Opponent.1, Cage, Sex, DumCage) %>% 
+  unique() %>% 
+  mutate(Fleeing=0) %>% 
+  mutate(`Induced Flee`=0) %>% 
+  mutate(Freeze=0) %>% 
+  gather("Behavior", "n_prime", 5:7)
+
+sub_data <- left_join(zeromatrix, sub_data, by=c("Opponent.1", "Cage", "Sex", "DumCage", "Behavior"))
+sub_data[is.na(sub_data)]<-0
+sub_data <- sub_data[,c(1:5,8)]
+
+sub_data <- mutate(sub_data, Behavior=ordered(Behavior, levels=c("Fleeing", "Induced Flee", "Freeze")))
   
+def_plot <- ggplot(sub_data, aes(Behavior, n, fill=Sex)) +
+  geom_boxplot() +
+  scale_color_npg() + scale_fill_npg()+
+  ylab("total frequency") + xlab("")
+def_plot
+```
+
+
+#Flee and induced flee between sexes
+```{r}
+sub_flee <- filter(sub_data, Behavior=="Induced Flee")
+small_wilcox("M", "F", Sex, n, sub_flee)
+#W(3,9)=15 p=.2409
 ```
 ```{r}
-
-sexdyads_dom_off <- filter(sexdyads_dom, Behavior %in% off)
-
-dom_sex_mdl_off <- lm(n~Behavior + Sex + Behavior*Sex, data=sexdyads_dom_off)
-
-anova(dom_sex_mdl_off)
-summary(dom_sex_mdl_off)
-
-
+grp_flee <- filter(sub_flee, Sex=="M")
+small_wilcox("2", "3", GrpSize, n, grp_flee)
 ```
-```{r}
-#subset out subordinates
-sexdyads_sub <- filter(sexdyads_ag, dom_status_ds=="Subordinate")
 
+
+##Total offensive vs. defensive behavior
+```{r}
 off <- c("Chasing", "Attacking", "Mounting", "Stealing")
 def <- c("Fleeing", "Induced Flee", "Freeze")
 
-sexplot <- ggplot(sexdyads_sub, aes(Behavior, n, fill=Sex))+
-  geom_boxplot()+
-  xlab("")+
-  scale_fill_npg()+
-  theme(axis.text.x=element_blank())
-sexplot
-  
-```
-```{r}
+dom_data <- ag %>% 
+  filter(dom_status_ds=="Dominant") %>% 
+  filter(Behavior %in% off) %>% 
+  group_by(Opponent.1, Cage, Sex, DumCage) %>% 
+  count(value) %>% 
+  rename(total_off=n) 
 
-sexdyads_sub_def <- filter(sexdyads_sub, Behavior %in% def)
+sub_data <- ag %>% 
+  filter(dom_status_ds=="Subordinate") %>% 
+  filter(Behavior %in% def) %>% 
+  group_by(Opponent.1, Cage, Sex, DumCage) %>% 
+  count(value) %>% 
+  rename(total_def=n)
 
-dom_sex_mdl_def <- lm(n~Behavior + Sex + Behavior*Sex, data=sexdyads_sub_def)
+#zeromatrix unnecessary or else they wouldn't be ranked.
 
-anova(dom_sex_mdl_def)
-summary(dom_sex_mdl_def)
+domsub_data <- left_join(dom_data, sub_data, by=c("Cage", "Sex", "DumCage"))
 
-```
+domsub_data <- mutate(domsub_data, test=abs(total_def-total_off))
+domsub_data <- mutate(domsub_data, rank=rank(test))
 
-##Group Size Effects, Males
-```{r}
-grpsize_male <- ag %>% 
-  filter(Sex=="M")
-
-grpsize_male <- grpsize_male %>% 
-  group_by(Cage, Opponent.1, GrpSize, dom_status_ds, Behavior) %>% 
-  count(value)
-
-zeromatrix <- ag %>%
-  filter(Sex=="M") %>% 
-  filter(Age=="Young") %>% 
-  select(Opponent.1, GrpSize, dom_status_ds, Cage) %>% 
-  unique() %>% 
-  mutate(Chasing=0) %>% 
-  mutate(Mounting=0) %>% 
-  mutate(Attacking=0) %>% 
-  mutate(Stealing=0) %>% 
-  mutate(Fleeing=0) %>% 
-  mutate(`Induced Flee`=0) %>%
-  mutate(Freeze=0) %>% 
-  mutate(Unseen=0) %>% 
-  mutate(Inactive=0) %>% 
-  mutate(`Top-Left`=0) %>% 
-  mutate(`Top-Right`=0) %>% 
-  mutate(`Bottom-Left`=0) %>% 
-  mutate(`Bottom-Right`=0) %>% 
-  gather("Behavior", "n_prime", 5:17)
-
-grpsize_zeros <- left_join(zeromatrix, grpsize_male, by=(c("Opponent.1", "GrpSize","dom_status_ds", "Cage", "Behavior")))
-grpsize_zeros[is.na(grpsize_zeros)]<-0
-
-grpsize_ag <- grpsize_zeros %>% 
-  filter(Behavior!="Top-Right") %>% 
-  filter(Behavior!="Top-Left") %>% 
-  filter(Behavior!="Bottom-Right") %>% 
-  filter(Behavior!="Bottom-Left")
-
-grpsize_ag1 <- grpsize_ag %>% 
-  filter(Behavior=="Induced Flee") %>% 
-  mutate(Behavior="Induced \nFlee")
-
-grpsize_ag2 <- grpsize_ag %>% 
-  filter(Behavior!="Induced Flee")
-
-grpsize_ag <- rbind(grpsize_ag1, grpsize_ag2)
-
-grpsize_ag$Behavior <- factor(grpsize_ag$Behavior, levels=c("Chasing", "Mounting", "Attacking", "Stealing", "Fleeing", "Induced \nFlee", "Freeze", "Unseen", "Inactive"))
+#t- = 1
+#44, 9, p=0.0039
 ```
 
 ```{r}
-#subset out dominants
-grpsize_dom <- filter(grpsize_ag, dom_status_ds=="Dominant")
+domsub_datax <- domsub_data %>% 
+  select(Cage, Sex, DumCage, total_off, total_def) %>% 
+  gather(Behavior, n, 4:5)
 
-off <- c("Chasing", "Attacking", "Mounting", "Stealing")
-def <- c("Fleeing", "Induced Flee", "Freeze")
-
-grpsizeplot <- ggplot(grpsize_dom, aes(Behavior, n, fill=as.factor(GrpSize)))+
-  geom_boxplot()+
-  xlab("")+
-  scale_fill_npg()
-grpsizeplot
+domsub_plot <- ggplot(domsub_datax, aes(Behavior, n, group=as.factor(DumCage), color=Sex, fill=Sex)) +
+  geom_point(size=3) + geom_line() +
+  scale_color_npg() + scale_fill_npg()+
+  scale_x_discrete(labels=c("Total Defensive \nfor Subordinates", "Total Offensive \nfor Dominants"))+
+  ylab("total frequency") + xlab("")
+domsub_plot
 ```
-
-```{r}
-
-grpsize_dom$GrpSize <- as.factor(grpsize_dom$GrpSize)
-
-grpsize_dom_off <- filter(grpsize_dom, Behavior %in% off)
-
-dom_grpsize_mdl_off <- lm(n~Behavior + GrpSize + Behavior*GrpSize, data=grpsize_dom_off)
-
-anova(dom_grpsize_mdl_off)
-summary(dom_grpsize_mdl_off)
-
-
-```
-
-#Age effects, Female
-```{r}
-age_female <- ag %>% 
-  filter(Sex=="F")
-
-age_female <- age_female %>% 
-  group_by(Cage, Opponent.1, Age, Behavior) %>% 
-  count(value)
-
-zeromatrix <- ag %>%
-  filter(Sex=="F") %>% 
-  select(Opponent.1, Age, Cage) %>% 
-  unique() %>% 
-  mutate(Chasing=0) %>% 
-  mutate(Mounting=0) %>% 
-  mutate(Attacking=0) %>% 
-  mutate(Stealing=0) %>% 
-  mutate(Fleeing=0) %>% 
-  mutate(`Induced Flee`=0) %>%
-  mutate(Freeze=0) %>% 
-  mutate(Unseen=0) %>% 
-  mutate(Inactive=0) %>% 
-  mutate(`Top-Left`=0) %>% 
-  mutate(`Top-Right`=0) %>% 
-  mutate(`Bottom-Left`=0) %>% 
-  mutate(`Bottom-Right`=0) %>% 
-  gather("Behavior", "n_prime", 4:16)
-
-age_zeros <- left_join(zeromatrix, age_female, by=(c("Opponent.1", "Age", "Cage", "Behavior")))
-age_zeros[is.na(age_zeros)]<-0
-
-age_ag <- age_zeros %>% 
-  filter(Behavior!="Top-Right") %>% 
-  filter(Behavior!="Top-Left") %>% 
-  filter(Behavior!="Bottom-Right") %>% 
-  filter(Behavior!="Bottom-Left")
-
-age_ag1 <- age_ag %>% 
-  filter(Behavior=="Induced Flee") %>% 
-  mutate(Behavior="Induced \nFlee")
-
-age_ag2 <- age_ag %>% 
-  filter(Behavior!="Induced Flee")
-
-age_ag <- rbind(age_ag1, age_ag2)
-
-age_ag$Behavior <- factor(age_ag$Behavior, levels=c("Chasing", "Mounting", "Attacking", "Stealing", "Fleeing", "Induced \nFlee", "Freeze", "Unseen", "Inactive"))
-
-
-age_plot <- ggplot(age_ag, aes(Behavior, n, fill=Age))+
-  geom_boxplot()+
-  xlab("")+
-  scale_fill_npg()+
-  theme(axis.text.x = element_text(angle = -45, hjust=-.025))
-
-age_plot
-```
-
 ```{r grouped plot}
 fig3 <- plot_grid(
-  sexplot, grpsize_plot, age_plot,
+  chase_plot, def_plot, domsub_plot,
   labels = "AUTO", ncol = 1
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_socbhv_plots.tiff", fig3, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_inddom_plots.tiff", fig3, units="cm", width = 7.5, height = 15, device='tiff', dpi=300)
 
   fig3
 ```
+
 

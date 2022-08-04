@@ -16,8 +16,18 @@ week_rank$Cage <- as.factor(week_rank$Cage)
 sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
 sex_id$Cage <- as.factor(sex_id$Cage)
 week_rank <- left_join(week_rank, sex_id, by="Cage")
-
 week_rank <- rename(week_rank, "Opponent.1"=AnimalID)
+dumcage <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+dumcage <- dumcage[,c(1,4)]
+dumcage <- distinct(dumcage)
+dumcage$Cage <- as.factor(dumcage$Cage)
+
+week_rank <- left_join(week_rank, dumcage, by="Cage")
+
+cumm_dom <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+cumm_dom <- rename(cumm_dom, "cumm_dom_status"=dom_status_ds)
+cumm_dom <- rename(cumm_dom, "Opponent.1"=AnimalID)
+week_rank <- left_join(week_rank, cumm_dom[,c(2,5)], by="Opponent.1")
 
 week_rank <- week_rank %>%
   mutate(dom_status_num=case_when(dom_status_ds=="Dominant"~3,
@@ -27,7 +37,7 @@ week_rank <- week_rank %>%
 
 
 stability <- week_rank %>% 
-  select(Opponent.1, Cage, Sex, Week, dom_status_num) %>% 
+  select(Opponent.1, Cage, DumCage, Sex, Week, dom_status_num) %>% 
   spread(Week, dom_status_num) %>% 
   mutate(Week12=ifelse(`Week1`==`Week2`,1,0))%>% 
   mutate(Week23=ifelse(`Week2`==`Week3`,1,0)) %>% 
@@ -36,15 +46,15 @@ stability <- week_rank %>%
 week_rank_stab <- stability %>% 
   select(Opponent.1, stab_status) %>% 
   left_join(week_rank, by="Opponent.1") %>% 
-  mutate(stab_status2=ifelse(dom_status_ds=="Unclear","Unclear",stab_status)) %>% 
-  mutate(stab_status2=ordered(stab_status2, levels=c("Stable", "Unstable", "Unclear")))
+  mutate(stab_status=ifelse(cumm_dom_status=="Unclear","Unclear",stab_status)) %>% 
+  mutate(stab_status=ordered(stab_status, levels=c("Stable", "Unstable", "Unclear")))
 
-#reassign cages 922587, 927693, 941702 as stable because they just didn't engage in agonistic behavior, not necessarily unstable
+#reassign cages 922587, 927693, 941702 as unclear across all weeks
 reassign <- c("922587", "927693", "941702")
 
 week_rank_stab_1 <- week_rank_stab %>% 
   filter(Cage %in% reassign) %>% 
-  mutate(stab_status="Stable")
+  mutate(stab_status="Unclear")
 
 week_rank_stab_2 <- week_rank_stab %>% 
   filter(!Cage %in% reassign)
@@ -52,12 +62,6 @@ week_rank_stab_2 <- week_rank_stab %>%
 week_rank_stab <- rbind(week_rank_stab_1, week_rank_stab_2)
 
 ##stab_status_2 is adding Unclear to stability
-
-rank_stab <- stability %>% 
-  select(Opponent.1, stab_status) %>% 
-  left_join(ind_rank, by="Opponent.1") %>% 
-  mutate(stab_status2=ifelse(dom_status=="Unclear","Unclear", stab_status)) %>% 
-  mutate(stab_status2=ordered(stab_status2, levels=c("Stable", "Unstable", "Unclear")))
 ```
 
 
@@ -65,107 +69,49 @@ rank_stab <- stability %>%
 ```{r organize data for river plot}
 river_data <- week_rank_stab %>% 
   mutate(dom_status_abb=case_when(dom_status_ds=="Dominant"~"Dom",
-                                  dom_status_ds=="Subordinate"~"Subor",
-                                  dom_status_ds=="Subdominant"~"SubD",
+                                  dom_status_ds=="Subordinate"~"Sub",
+                                  dom_status_ds=="Subdominant"~"Subd",
                                   dom_status_ds=="Unclear"~"Unc"))%>% 
-  select(Opponent.1, stab_status, Sex, GrpSize, Age, Week, dom_status_abb) %>% 
+  select(Opponent.1, Cage, DumCage, stab_status, Trt, Sex, GrpSize, Age, Week, dom_status_abb) %>% 
   spread(Week, dom_status_abb)
 river_data$Week1 <- as.factor(river_data$Week1)
 river_data$Week2 <- as.factor(river_data$Week2)
 river_data$Week3 <- as.factor(river_data$Week3)
+
+river_data$Trt <- factor(river_data$Trt, levels=c("YFD", "YMD", "OFD", "YMT"))
+river_data$stab_status <- factor(river_data$stab_status, levels=c("Stable", "Unstable", "Unclear"))
+
 ```
 
 
-```{r river plot f}
+```{r}
 
-sexdyads_f <- river_data %>% 
-  filter(GrpSize==2) %>% 
-  filter(Age=="Young") %>% 
-  filter(Sex=="F")
-
-river_plot_f <- ggplot(sexdyads_f, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
-  geom_alluvium(aes(fill=stab_status))+
-  geom_stratum()+
-  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+fig2 <- ggplot(river_data, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
+  geom_alluvium(aes(fill=stab_status, text=DumCage))+
+  geom_text(stat="alluvium", aes(label=DumCage), hjust=0, nudge_x=0.2)+
+  geom_stratum() + 
+  geom_text(stat="stratum", aes(label=after_stat(stratum)))+
   scale_x_discrete(limits=c("1", "2", "3"), expand=c(.05,.05))+
   xlab("")+
   scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
   scale_fill_npg()+
-  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
   labs(fill="Stability")+
-  guides(fill="none")+
-  ggtitle("YFD")
-river_plot_f
-```
-```{r river plot m}
-sexdyads_m <- river_data %>% 
-  filter(GrpSize==2) %>% 
-  filter(Age=="Young") %>% 
-  filter(Sex=="M")
-
-river_plot_m <- ggplot(sexdyads_m, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
-  geom_alluvium(aes(fill=stab_status))+
-  geom_stratum()+
-  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
-  scale_x_discrete(limits=c("1", "2", "3"), expand=c(.05,.05))+
-  xlab("")+
-  scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
-  scale_fill_npg()+
-  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
-  labs(fill="Stability")+
-  guides(fill="none")+
-  ggtitle("YMD")
-
-river_plot_m
+  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5), axis.text.y=element_blank(), axis.ticks.y=element_blank())+
+  facet_wrap(~Trt, scales="free")
+fig2
 ```
 
-```{r}
-grpsize_3 <- river_data %>% 
-  filter(Sex=="M") %>% 
-  filter(GrpSize=="3")
-
-river_plot_3 <- ggplot(grpsize_3, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
-  geom_alluvium(aes(fill=stab_status))+
-  geom_stratum()+
-  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
-  scale_x_discrete(limits=c("1", "2", "3"), expand=c(.05,.05))+
-  xlab(" ")+
-  scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
-  scale_fill_npg()+
-  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
-  labs(fill="Stability")+
-  guides(fill="none")+
-  ggtitle("YMT")
-river_plot_3
-```
-```{r}
-age_old <- river_data %>% 
-  filter(Sex=="F") %>% 
-  filter(Age=="Old")
-
-river_plot_old <- ggplot(age_old, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
-  geom_alluvium(aes(fill=stab_status))+
-  geom_stratum()+
-  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
-  scale_x_discrete(limits=c("1", "2", "3"), expand=c(.05,.05))+
-  xlab("Week")+
-  scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
-  scale_fill_npg()+
-  theme(legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
-  guides(fill="none")+
-  ggtitle("OFD")
-river_plot_old
-```
 ```{r grouped plot}
-fig2 <- plot_grid(
-  river_plot_f, river_plot_m,
-  river_plot_old, river_plot_3,
-  labels = "AUTO", ncol = 2
-)
 
 ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.tiff", fig2, units="cm", width = 15, height = 15, device='tiff', dpi=300)
 
   fig2
 ```
+```{r}
+rank_stab <- week_rank_stab %>% 
+  select(Opponent.1, Cage, stab_status) %>% 
+  rename("AnimalID"=Opponent.1) %>% 
+  distinct()
+write.csv(rank_stab, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/stabilitybycage.csv")
 ```
 

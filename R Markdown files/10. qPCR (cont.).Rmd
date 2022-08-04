@@ -30,24 +30,27 @@ qpcr_data <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2
 sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
 ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
 eardata <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/EarDaysToClose.xlsx")
+stability <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/stabilitybycage.csv")
 
 
 qpcr_data <- left_join(qpcr_data, sex_id[,c(4,6,15)], by="AnimalID")
 qpcr_data <- left_join(qpcr_data, ind_ds[,2:5], by="AnimalID")
 qpcr_data <- left_join(qpcr_data, eardata, by="AnimalID")
+qpcr_data <- left_join(qpcr_data, stability, by="AnimalID")
 
 qpcr_data$Sex <- as.factor(qpcr_data$Sex)
 qpcr_data$Cage.x <- as.factor(qpcr_data$Cage.x)
 qpcr_data$GrpSize <- as.factor(qpcr_data$GrpSize)
 qpcr_data$dom_status_ds <- as.factor(qpcr_data$dom_status_ds)
+qpcr_data$stab_status <- factor(qpcr_data$stab_status, levels=c("Stable", "Unstable", "Unclear"))
 ```
 
 ```{r}
-Cyp11a1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="Cyp11a1"), REML=TRUE)
-Star_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="StAR"), REML=TRUE)
-Nr5a1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="Nrb01"), REML=TRUE)
-Nrb01_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="Nr5a1"), REML=TRUE)
-Cyp11b1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="Cyp11b1"), REML=TRUE)
+Cyp11a1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="Cyp11a1"), REML=TRUE)
+Star_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="StAR"), REML=TRUE)
+Nr5a1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="Nrb01"), REML=TRUE)
+Nrb01_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="Nr5a1"), REML=TRUE)
+Cyp11b1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="Cyp11b1"), REML=TRUE)
 
 print("Cyp11a1")
 anova(Cyp11a1_m_f)
@@ -71,8 +74,10 @@ summary(Cyp11b1_m_f)
 cyp11b1 <- qpcr_data %>% 
   filter(target.x != "GAPDH")
 
-ggplot(cyp11b1, aes(target.x, GeneExpRat, color=Sex, group=Sex))+
-  stat_summary(fun.data=mean_se, geom="pointrange", position=position_dodge(width=0.1))
+ggplot(cyp11b1, aes(target.x, GeneExpRat, fill=Sex))+
+  geom_boxplot() +
+  scale_fill_npg()+
+  xlab("") + ylab("Gene expression ratio")
 
 ```
 

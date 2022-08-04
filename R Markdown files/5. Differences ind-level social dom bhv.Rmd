@@ -164,9 +164,8 @@ sum(dom_datax$rank)-2
 #43, 9, p=0.0059
 ```
 ```{r plot}
-chase_plot <- ggplot(dom_data, aes(Behavior, n, group=as.factor(DumCage), color=Sex, fill=Sex)) +
-  geom_point(size=3) + geom_line() +
-  scale_color_npg() + scale_fill_npg()+
+chase_plot <- ggplot(dom_data, aes(Behavior, n, group=as.factor(DumCage))) +
+  geom_point(size=3, color="black") + geom_line(color="black") +
   ylab("total frequency") + xlab("")
 chase_plot
 ```
@@ -270,9 +269,8 @@ sub_data <- sub_data[,c(1:5,8)]
 
 sub_data <- mutate(sub_data, Behavior=ordered(Behavior, levels=c("Fleeing", "Induced Flee", "Freeze")))
   
-def_plot <- ggplot(sub_data, aes(Behavior, n, fill=Sex)) +
-  geom_boxplot() +
-  scale_color_npg() + scale_fill_npg()+
+def_plot <- ggplot(sub_data, aes(Behavior, n)) +
+  geom_boxplot(fill="grey") +
   ylab("total frequency") + xlab("")
 def_plot
 ```
@@ -325,9 +323,8 @@ domsub_datax <- domsub_data %>%
   select(Cage, Sex, DumCage, total_off, total_def) %>% 
   gather(Behavior, n, 4:5)
 
-domsub_plot <- ggplot(domsub_datax, aes(Behavior, n, group=as.factor(DumCage), color=Sex, fill=Sex)) +
-  geom_point(size=3) + geom_line() +
-  scale_color_npg() + scale_fill_npg()+
+domsub_plot <- ggplot(domsub_datax, aes(Behavior, n, group=as.factor(DumCage))) +
+  geom_point(size=3, color="black") + geom_line(color="black") +
   scale_x_discrete(labels=c("Total Defensive \nfor Subordinates", "Total Offensive \nfor Dominants"))+
   ylab("total frequency") + xlab("")
 domsub_plot
@@ -338,7 +335,7 @@ fig3 <- plot_grid(
   labels = "AUTO", ncol = 1
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_inddom_plots.tiff", fig3, units="cm", width = 7.5, height = 15, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_inddom_plots.tiff", fig3, units="cm", width = 10, height = 17, device='tiff', dpi=300)
 
   fig3
 ```

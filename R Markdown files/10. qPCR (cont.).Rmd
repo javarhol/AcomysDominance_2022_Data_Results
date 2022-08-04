@@ -1,0 +1,78 @@
+---
+title: "10. qPCR (cont.)"
+author: "varholick"
+date: "1/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#plots
+library(tidyverse)
+library(ggplot2)
+library(ggbeeswarm)
+library(ggthemr) #devtools::install_github('Mikata-Project/ggthemr')
+library(ggsci)
+library(ggpubr)
+library(cowplot)
+library(readxl)
+
+#stats
+library(psych)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+
+ggthemr('flat')
+```
+```{r}
+qpcr_data <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_040122.csv")
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+eardata <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/EarDaysToClose.xlsx")
+
+
+qpcr_data <- left_join(qpcr_data, sex_id[,c(4,6,15)], by="AnimalID")
+qpcr_data <- left_join(qpcr_data, ind_ds[,2:5], by="AnimalID")
+qpcr_data <- left_join(qpcr_data, eardata, by="AnimalID")
+
+qpcr_data$Sex <- as.factor(qpcr_data$Sex)
+qpcr_data$Cage.x <- as.factor(qpcr_data$Cage.x)
+qpcr_data$GrpSize <- as.factor(qpcr_data$GrpSize)
+qpcr_data$dom_status_ds <- as.factor(qpcr_data$dom_status_ds)
+```
+
+```{r}
+Cyp11a1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="Cyp11a1"), REML=TRUE)
+Star_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="StAR"), REML=TRUE)
+Nr5a1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="Nrb01"), REML=TRUE)
+Nrb01_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="Nr5a1"), REML=TRUE)
+Cyp11b1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + AgeAtTest + Sex + GrpSize + ds, filter(qpcr_data, target.x=="Cyp11b1"), REML=TRUE)
+
+print("Cyp11a1")
+anova(Cyp11a1_m_f)
+r.squaredGLMM(Cyp11a1_m_f)
+print("Star")
+anova(Star_m_f)
+r.squaredGLMM(Star_m_f)
+print("Nr5a1")
+anova(Nr5a1_m_f)
+r.squaredGLMM(Nr5a1_m_f)
+print("Nrb01")
+anova(Nrb01_m_f)
+r.squaredGLMM(Nrb01_m_f)
+print("Cyp11b1")
+anova(Cyp11b1_m_f)
+r.squaredGLMM(Cyp11b1_m_f)
+summary(Cyp11b1_m_f)
+```
+
+```{r}
+cyp11b1 <- qpcr_data %>% 
+  filter(target.x != "GAPDH")
+
+ggplot(cyp11b1, aes(target.x, GeneExpRat, color=Sex, group=Sex))+
+  stat_summary(fun.data=mean_se, geom="pointrange", position=position_dodge(width=0.1))
+
+```
+

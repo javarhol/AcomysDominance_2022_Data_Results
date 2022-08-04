@@ -33,8 +33,16 @@ ind_rank_wins <- left_join(ind_rank_wins, sex_id, by="Cage")
 
 ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
 ind_ds$Cage <- as.factor(ind_ds$Cage)
-ind_ds <- left_join(ind_ds, ind_rank, by=c("AnimalID"="Opponent.1"))
+ind_ds <- left_join(ind_ds, ind_rank_wins, by=c("AnimalID"="Opponent.1"))
 ind_ds$dom_status_ds <- as.factor(ind_ds$dom_status_ds)
+
+dc_cage <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dcbycage_edited.csv")
+cages <- ind_ds %>% 
+  select(Cage.x, DumCage, Sex, GrpSize, Age, Trt) %>% 
+  distinct() %>% 
+  rename(Cage=Cage.x)
+dc_cage$Cage <- as.factor(dc_cage$Cage)
+dc_cage <- left_join(dc_cage, cages, by="Cage")
 
 stp <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/steepbycage_edited.csv")
 stp$Cage <- as.factor(stp$Cage)
@@ -42,80 +50,36 @@ stp <- left_join(stp, ind_ds, by=c("Cage"="Cage.x"))
 stp <- stp %>% 
   mutate(norm_ds=ds+(GrpSize*(GrpSize-1)/2))
 ```
-## Social dominance graphs
-```{r f ds}
-sexdyads_f <- ind_ds %>% 
-  filter(GrpSize==2) %>% 
-  filter(Age=="Young") %>% 
-  filter(Sex=="F")
-
-status_plot_f <- ggplot(sexdyads_f, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
-  geom_point(size=3, alpha=1) +
-  xlab("")+ ylab("David's Score")+
-  scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2", "#00A087B2","#3C5488B2"))+
-  scale_shape_manual(values=c(19,17,15,18))+
-  guides(color="none", shape="none")+
-  ggtitle("Young Female Dyads")
-status_plot_f
-
+##Social dominance graphs
+```{r, david scores}
+ds_plot <- ggplot(ind_ds, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds))+
+  geom_point(size=3, alpha=1, position=position_dodge(width=0.5))+
+  scale_color_npg()+
+  xlab("") + ylab("David's Score")+
+  guides(color=guide_legend("Dominance Status"), shape=guide_legend("Dominance Status"))
+ds_plot
 ```
-```{r m ds}
-sexdyads_m <- ind_ds %>% 
-  filter(GrpSize==2) %>% 
-  filter(Sex=="M")
+```{r, dc index}
 
-status_plot_m <- ggplot(sexdyads_m, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
-  geom_point(size=3, alpha=1) +
-  xlab("")+ ylab("David's Score")+
-  scale_color_manual(values=c("#E64B35B2", "#4DBBD5B2", "#00A087B2","#3C5488B2"))+
-  scale_shape_manual(values=c(19,17,15,18))+
-  guides(color="none", shape="none")+
-  ggtitle("Young Male Dyads")
-status_plot_m
+dc_cage$Trt <- factor(dc_cage$Trt, levels=c("YFD", "YMD", "YMT", "OFD"))
 
+dc_plot <- ggplot(dc_cage, aes(as.factor(DumCage), dc, fill=Trt))+
+  geom_bar(stat="identity")+
+  scale_y_continuous(expand=c(0,0))+
+  scale_fill_npg()+
+  ylab("DC index") + xlab("")+
+  guides(fill=guide_legend("Housing Condition"))
+dc_plot
 ```
-
-
-```{r group ds}
-grpsize_male_3 <- ind_ds %>% 
-  filter(Sex=="M") %>% 
-  filter(GrpSize=="3")
-
-status_plot_3 <- ggplot(grpsize_male_3, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
-  geom_point(size=3, alpha=1, position=position_dodge(width=0.5)) +
-  xlab("")+ ylab("David's Score")+
-  scale_color_manual(values=c("#E64B35B2", "#00A087B2", "#4DBBD5B2"))+
-  scale_shape_manual(values=c(19,15,17))+
-  guides(color="none", shape="none")+
-  ggtitle("Young Male Triads")
-status_plot_3
-```
-
-```{r age ds}
-age_female_old <- ind_ds %>% 
-  filter(Sex=="F") %>% 
-  filter(Age=="Old")
-
-status_plot_old <- ggplot(age_female_old, aes(as.factor(DumCage), ds, color=dom_status_ds, shape=dom_status_ds)) +
-  geom_point(size=3, alpha=1) +
-  xlab("")+ ylab("David's Score")+
-  scale_color_manual(values="#3C5488B2")+
-  scale_shape_manual(values=18)+
-  guides(color="none", shape="none")+
-  ggtitle("Old Female Dyads")
-status_plot_old
-```
-
 ```{r grouped plot}
 fig1 <- plot_grid(
-  status_plot_f, status_plot_m,
-  status_plot_old, status_plot_3,
-  labels = "AUTO", ncol = 2
+  ds_plot, dc_plot,
+  labels="AUTO", ncol=1, align="v"
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig1_status_plots.tiff", fig1, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig1_plot.tiff", fig1, units="cm", width = 15, height = 15, device='tiff', dpi=300)
 
- fig1
+fig1
 ```
 
 ##Analyses were done by hand in reference to Siegel and Castellan 1988, "Nonparametric Statistics for the Behavioral Sciences" pg 130

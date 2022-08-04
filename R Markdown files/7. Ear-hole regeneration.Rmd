@@ -1,0 +1,74 @@
+---
+title: "7. Ear-hole regeneration"
+author: "varholick"
+date: "8/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#plots
+library(tidyverse)
+library(ggplot2)
+library(ggbeeswarm)
+library(ggthemr) #devtools::install_github('Mikata-Project/ggthemr')
+library(ggsci)
+library(ggpubr)
+library(cowplot)
+library(readxl)
+
+#stats
+library(psych)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+
+ggthemr('flat')
+```
+#organize data
+```{r}
+eardata <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/EarDaysToClose.xlsx")
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+
+eardata <- left_join(eardata, sex_id, by="AnimalID")
+eardata <- left_join(eardata, ind_ds, by="AnimalID")
+
+eardata$Sex <- as.factor(eardata$Sex)
+eardata$Cage.x <- as.factor(eardata$Cage.x)
+eardata$GrpSize <- as.factor(eardata$GrpSize)
+eardata$dom_status_ds <- as.factor(eardata$dom_status_ds)
+```
+
+#mixed model
+```{r}
+m.earclose.full <- lmer(DaysToClose ~ (1|Cage.x) + AgeAtTest + GrpSize + Sex + ds, data=eardata, REML=F, control=lmerControl(optimizer="bobyqa"))
+m.earclose.simp <- lm(DaysToClose ~ AgeAtTest + GrpSize + Sex + ds, data=eardata)
+
+
+anova(m.earclose.full)
+anova(m.earclose.simp)
+
+r.squaredGLMM(m.earclose.simp)
+r.squaredGLMM(m.earclose.full)
+```
+
+
+```{r}
+ggplot(eardata, aes(DaysToClose, ds, color=Sex, shape=GrpSize)) +
+  geom_point(size=2, position = position_dodge(width=3))+
+  scale_color_npg()
+```
+```{r}
+ggplot(eardata, aes(DumCage, DaysToClose, color=Sex, shape=dom_status_ds)) +
+  geom_point(size=3, position=position_dodge(width=0.25))
+```
+```{r}
+ggplot(eardata, aes(AgeAtTest, DaysToClose, color=Sex)) +
+  geom_point()+
+  scale_color_npg()
+```
+
+
+
+

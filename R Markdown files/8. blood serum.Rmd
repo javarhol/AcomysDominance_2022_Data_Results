@@ -1,0 +1,75 @@
+---
+title: "8. blood serum"
+author: "varholick"
+date: "8/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#plots
+library(tidyverse)
+library(ggplot2)
+library(ggbeeswarm)
+library(ggthemr) #devtools::install_github('Mikata-Project/ggthemr')
+library(ggsci)
+library(ggpubr)
+library(cowplot)
+library(readxl)
+
+#stats
+library(psych)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+
+ggthemr('flat')
+```
+
+# data organization
+```{r}
+cort_data <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/cort_combined.csv", header=TRUE)
+
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+eardata <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/EarDaysToClose.xlsx")
+
+cort_data <- left_join(cort_data, sex_id, by="AnimalID")
+cort_data <- left_join(cort_data, ind_ds, by="AnimalID")
+cort_data <- left_join(cort_data, eardata, by="AnimalID")
+
+cort_data$Sex.x <- as.factor(cort_data$Sex.x)
+cort_data$Cage.x <- as.factor(cort_data$Cage.x)
+cort_data$GrpSize <- as.factor(cort_data$GrpSize)
+cort_data$dom_status_ds <- as.factor(cort_data$dom_status_ds)
+
+cort_data <- filter(cort_data, Sex.x!="F")
+```
+
+```{r}
+m.cort.full <- lmer(ng ~ (1|Cage.x) + AgeAtTest + GrpSize + ds, data=cort_data, REML=F, control=lmerControl(optimizer="bobyqa"))
+m.cort.simp <- lm(ng ~ AgeAtTest + GrpSize + ds, data=cort_data)
+
+
+anova(m.cort.full)
+anova(m.cort.simp)
+
+r.squaredGLMM(m.cort.simp)
+r.squaredGLMM(m.cort.full)
+```
+
+```{r}
+cor.test(cort_data$DaysToClose, cort_data$ng, test="spearman")
+```
+
+
+```{r}
+ggplot(cort_data, aes(AgeAtTest, ng, color=dom_status_ds)) +
+  geom_point()
+```
+
+```{r}
+ggplot(cort_data, aes(DaysToClose, ng)) +
+  geom_point()
+```
+

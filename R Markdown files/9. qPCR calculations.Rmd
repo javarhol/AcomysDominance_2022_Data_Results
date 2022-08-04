@@ -1,0 +1,101 @@
+---
+title: "9. qPCR calculations"
+author: "varholick"
+date: "1/3/2022"
+modified: "4/1/2022"
+output: html_document
+
+Pfaffl Method
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(readxl)
+```
+
+```{r import_data}
+raw_data <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qPCR_data_dominance1.xlsx", sheet="DuplicatedRuns_Removed")
+```
+```{r double_check duplicates}
+raw_data2 <- raw_data %>% 
+  group_by(target, Sample) %>% 
+  mutate(num_dups=n(),
+         dup_id=row_number()) %>%
+  ungroup() %>% 
+  mutate(isduplicated=dup_id > 1)
+```
+##### _check the number of duplicates, only calibrator should have more than 3_
+
+### Log transform and calculate average Ct values
+```{r tidy data}
+tidy_data <- raw_data %>% 
+  filter(Sample!="NTC", Sample!="") %>% 
+  mutate(Cq=as.numeric(Cq)) %>% 
+  mutate(logCq= log(Cq)) %>% 
+  group_by(plate, Sample, target) %>% 
+  summarise(mean_Ct = mean(logCq))
+```
+
+### Adjust Ct values for calibrator per plate (Calibrator - Ct)
+```{r plate calibration}
+test_data <- tidy_data %>% 
+  filter(Sample!="Calibrator")
+calibrators <- tidy_data %>%
+  filter(Sample=="Calibrator")
+
+cal_tidy <- left_join(test_data, calibrators, by=c("plate"))
+cal_tidy <- mutate(cal_tidy, calb_Ct = mean_Ct.y - mean_Ct.x)
+tidy_data_calCt <- cal_tidy %>% 
+  data.frame() %>% 
+  mutate(target=target.x) %>% 
+  select(Sample.x, target, calb_Ct)
+
+head(tidy_data_calCt)
+```
+
+### Adjust Ct values for primer efficiency
+Efficiences were determined on March 4th 2021 (Cyp11b1 on April 1st 2022)
+With only three concentrations (1, .1, .01)
+```{r primer efficiency}
+
+primer_effis <- read_xlsx("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qPCR_primer_effis_converted.xlsx")
+
+tidy_data_calCt_eff <- left_join(tidy_data_calCt, primer_effis, by="target")
+
+tidy_data_calCt_eff <- tidy_data_calCt_eff %>%
+  mutate(eff_Ct = conv_effi^(calb_Ct))
+
+head(tidy_data_calCt_eff)
+```
+
+### Calculate DeltaCt (gene expression ratio)
+```{r}
+test_data <- tidy_data_calCt_eff %>% 
+  filter(target!="Actin B")
+ActinB <- tidy_data_calCt_eff %>%
+  filter(target=="Actin B")
+
+HK_tidy <- left_join(test_data, ActinB, by=c("Sample.x"))
+HK_tidy <- mutate(HK_tidy, GeneExpRat = eff_Ct.x / eff_Ct.y)
+
+tidy_data_pfaffl <- HK_tidy %>% 
+  data.frame() %>% 
+  select(Sample.x, target.x, GeneExpRat)
+head(tidy_data_pfaffl)
+```
+### Add independent variables
+```{r import inventory data}
+inv_data <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx")
+```
+```{r merge inv with deltaCt values}
+tidy_inv_data <- inv_data[,c(1,2,5,6,7,8)]
+tidy_data_pfaffl <- rename(tidy_data_pfaffl, BlindID = Sample.x)
+tidy_data_pfaffl2 <- left_join(tidy_data_pfaffl, tidy_inv_data, by="BlindID")
+head(tidy_data_pfaffl2)
+```
+
+```{r}
+write.csv(tidy_data_pfaffl2, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_040122.csv")
+```

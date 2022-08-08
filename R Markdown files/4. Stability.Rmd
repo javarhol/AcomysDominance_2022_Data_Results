@@ -100,12 +100,46 @@ fig2 <- ggplot(river_data, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
   facet_wrap(~Trt, scales="free")
 fig2
 ```
+```{r}
+rank_stab <- week_rank_stab %>% 
+  select(Opponent.1, Cage, stab_status) %>% 
+  rename("AnimalID"=Opponent.1) %>% 
+  distinct()
+sex_id2 <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+sex_id2 <- distinct(sex_id2[,c(3,6,15)])
+rank_stab <- left_join(rank_stab, sex_id2, by="AnimalID")
+rank_stab <- left_join(rank_stab, dumcage, by="Cage")
+rank_stab <- distinct(rank_stab)
+rank_stab$stab_status <- factor(rank_stab$stab_status, levels=c("Stable", "Unstable", "Unclear"))
+
+agestab_plot <- ggplot(rank_stab, aes(stab_status, AgeAtTest, color=stab_status, label=DumCage))+
+  geom_jitter(size=4) +
+  scale_color_npg()+
+  xlab("") + ylab("Age at experiment d0")+
+  labs(color="Stability")
+agestab_plot
+```
+```{r}
+m.agestab <- lmer(AgeAtTest ~ (1|Cage) + stab_status, data=rank_stab)
+m.agestab.simp <- lm(AgeAtTest ~ stab_status, data=rank_stab)
+
+anova(m.agestab)
+summary(m.agestab)
+
+r.squaredGLMM(m.agestab.simp)
+r.squaredGLMM(m.agestab)
+```
 
 ```{r grouped plot}
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.tiff", fig2, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+figx <- plot_grid(
+  fig2, agestab_plot,
+  labels="AUTO", ncol=2
+)
 
-  fig2
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.tiff", figx, units="cm", width = 30, height = 15, device='tiff', dpi=300)
+
+figx
 ```
 ```{r}
 rank_stab <- week_rank_stab %>% 

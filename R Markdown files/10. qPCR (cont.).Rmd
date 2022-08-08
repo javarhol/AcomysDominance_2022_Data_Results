@@ -74,10 +74,15 @@ summary(Cyp11b1_m_f)
 cyp11b1 <- qpcr_data %>% 
   filter(target.x != "GAPDH")
 
-ggplot(cyp11b1, aes(target.x, GeneExpRat, fill=Sex))+
+cyp_plot <- ggplot(cyp11b1, aes(target.x, GeneExpRat, fill=Sex))+
   geom_boxplot() +
   scale_fill_npg()+
   xlab("") + ylab("Gene expression ratio")
+
+cyp_plot
+```
+```{r}
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig6_qpcr_plots.tiff", cyp_plot, units="cm", width = 15, height = 15, device='tiff', dpi=300)
 
 ```
 

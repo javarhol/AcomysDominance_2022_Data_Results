@@ -190,7 +190,7 @@ ggplot(sex_dyads_dom, aes(Behavior, n, fill=Sex))+
 ```
 #Test, sex
 ```{r}
-m.sex.dom <- glm(n~Behavior + Sex + Behavior*Sex, data=sex_dyads_dom)
+m.sex.dom <- lmer(n ~ (1|Opponent.1) + Behavior + Sex + Behavior*Sex, data=sex_dyads_dom)
 anova(m.sex.dom, test="F")
 summary(m.sex.dom)
 ```
@@ -202,14 +202,17 @@ sex_dyads_sub <- ag3 %>%
   filter(dom_status_ds=="Subordinate") %>% 
   filter(Behavior %in% def)
 
+#need to set freezing as the reference group for the stat model
+sex_dyads_sub$Behavior <- factor(sex_dyads_sub$Behavior, levels=c("Freeze", "Induced \nFlee", "Fleeing", "Chasing", "Mounting", "Attacking", "(Other)"))
+
 ggplot(sex_dyads_sub, aes(Behavior, n, fill=Sex))+
   geom_boxplot()+
   scale_fill_npg()
 ```
 #Test, sex sub
 ```{r}
-m.sex.sub <- glm(n~Behavior + Sex + Behavior*Sex, data=sex_dyads_sub)
-anova(m.sex.sub, test="F")
+m.sex.sub <- lmer(n ~ (1|Opponent.1) + Behavior + Sex + Behavior*Sex, data=sex_dyads_sub)
+anova(m.sex.sub)
 summary(m.sex.sub)
 ```
 
@@ -226,7 +229,7 @@ ggplot(sex_dyads_domsub, aes(group, n, fill=Sex, color=Sex, group=Cage)) +
 ```
 #test, sex domsub
 ```{r}
-m.sex.domsub <- lmer(n ~ (1|Cage) + group + Sex + group*Sex, data=sex_dyads_domsub, REML=F, control=lmerControl(optimizer="bobyqa"))
+m.sex.domsub <- lmer(n ~ (1|Cage) + group + Sex + group*Sex, data=sex_dyads_domsub)
 anova(m.sex.domsub, test="F")
 summary(m.sex.domsub)
 
@@ -247,7 +250,7 @@ ggplot(males_dom, aes(Behavior, n, fill=as.factor(GrpSize)))+
 ```
 #Test, grpsize
 ```{r}
-m.grp.dom <- glm(n~Behavior + as.factor(GrpSize) + Behavior*as.factor(GrpSize), data=males_dom)
+m.grp.dom <- lmer(n ~ (1|Opponent.1) + Behavior + as.factor(GrpSize) + Behavior*as.factor(GrpSize), data=males_dom)
 anova(m.grp.dom, test="F")
 summary(m.grp.dom)
 ```
@@ -258,13 +261,16 @@ males_sub <- ag3 %>%
   filter(dom_status_ds=="Subordinate") %>% 
   filter(Behavior %in% def)
 
+#need to set freezing as the reference group for the stat model
+males_sub$Behavior <- factor(males_sub$Behavior, levels=c("Freeze", "Induced \nFlee", "Fleeing", "Chasing", "Mounting", "Attacking", "(Other)"))
+
 ggplot(males_sub, aes(Behavior, n, fill=as.factor(GrpSize)))+
   geom_boxplot()+
   scale_fill_npg()
 ```
 #Test, grpsize sub
 ```{r}
-m.grp.sub <- glm(n ~  Behavior + as.factor(GrpSize) + Behavior*as.factor(GrpSize), data=males_sub)
+m.grp.sub <- lmer(n ~ (1|Opponent.1) + Behavior + as.factor(GrpSize) + Behavior*as.factor(GrpSize), data=males_sub)
 anova(m.grp.sub, test="F")
 summary(m.grp.sub)
 ```
@@ -276,7 +282,7 @@ ggplot(males_domsub, aes(group, n, fill=as.factor(GrpSize), color=as.factor(GrpS
   geom_point() + geom_line()
 ```
 ```{r}
-m.males.domsub <- lmer(n ~ (1|Cage) + group + as.factor(GrpSize) + group*as.factor(GrpSize), data=males_domsub, REML=F, control=lmerControl(optimizer="bobyqa"))
+m.males.domsub <- lmer(n ~ (1|Cage) + group + as.factor(GrpSize) + group*as.factor(GrpSize), data=males_domsub)
 anova(m.males.domsub, test="F")
 summary(m.males.domsub)
 ```
@@ -284,26 +290,48 @@ summary(m.males.domsub)
 
 
 ```{r grouped plot}
-dom_sex_plot <- ggplot(sex_dyads_dom, aes(Behavior, n, fill=Sex))+
-  geom_boxplot()+
-  scale_fill_npg()+
-  ylab("Total freq.") + xlab("")
-
-domsub_sex_plot <- ggplot(sex_dyads_domsub, aes(group, n, fill=Sex, color=Sex, group=Cage)) +
-  geom_point(size=3) + geom_line(size=1) +
-  scale_fill_npg() + scale_color_npg() +
-  scale_x_discrete(labels=c("Dominant Offensive", "Subordinate Defensive")) +
-  ylab("Total freq.") + xlab("")
-
-males_plot <- ggplot(males_dom, aes(Behavior, n, fill=as.factor(GrpSize)))+
-  geom_boxplot()+
+dom_sex_plot <- ggplot(sex_dyads_dom, aes(Behavior, n, color=Sex, fill=Sex))+
+  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 5)+
+  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
+  scale_y_continuous(limits=c(0,200))+
+  scale_color_npg()+
   scale_fill_npg()+
   ylab("Total freq.") + xlab("") +
-  guides(fill=guide_legend("Group Size"))
+  theme(legend.position = "none")
+
+sub_sex_plot <- ggplot(sex_dyads_sub, aes(Behavior, n, color=Sex, fill=Sex))+
+  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 5)+
+  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
+  scale_y_continuous(limits=c(0,200))+
+  scale_color_npg()+
+  scale_fill_npg()+
+  ylab("Total freq.") + xlab("")+
+  theme(legend.position = "bottom")
+
+males_plot <- ggplot(males_dom, aes(Behavior, n, color=as.factor(GrpSize), fill=as.factor(GrpSize)))+
+  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 5)+
+  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
+  scale_y_continuous(limits=c(0,200))+
+  scale_color_npg()+
+  scale_fill_npg()+
+  ylab("Total freq.") + xlab("")+
+  theme(legend.position = "none")
+
+males_sub_plot <- ggplot(males_sub, aes(Behavior, n, color=as.factor(GrpSize), fill=as.factor(GrpSize)))+
+  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 5)+
+  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
+  scale_y_continuous(limits=c(0,200))+
+  scale_color_npg()+
+  scale_fill_npg()+
+  ylab("Total freq.") + xlab("")+
+  guides(fill=guide_legend("Group Size"), color=guide_legend("Group Size"))+
+  theme(legend.position = "bottom")
+
 
 fig3 <- plot_grid(
-  dom_sex_plot, domsub_sex_plot, males_plot,
-  labels = "AUTO", ncol = 1, align="v"
+  dom_sex_plot, males_plot,
+  sub_sex_plot, males_sub_plot,
+  labels = "AUTO", ncol = 2, rel_heights = c(1,1,2,2)
 )
 
 ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_socbhv_plots.tiff", fig3, units="cm", width = 15, height = 15, device='tiff', dpi=300)

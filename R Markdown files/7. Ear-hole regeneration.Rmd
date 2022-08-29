@@ -45,13 +45,14 @@ eardata$stab_status <- factor(eardata$stab_status, levels=c("Stable", "Unstable"
 
 #mixed model
 ```{r}
-m.earclose.full <- lmer(DaysToClose ~ (1|Cage.x) + ds + stab_status + ds*stab_status, data=eardata, REML=F, control=lmerControl(optimizer="bobyqa"))
+m.earclose.full <- lmer(DaysToClose ~ (1|Cage.x) + ds + stab_status + ds*stab_status, data=eardata)
 m.earclose.simp <- lm(DaysToClose ~ ds + stab_status + ds*stab_status, data=eardata)
 
-m.earclose.age <- lmer(DaysToClose ~ (1|Cage.x) + AgeAtTest + ds + stab_status + ds*stab_status, data=eardata, REML=F, control=lmerControl(optimizer="bobyqa"))
+m.earclose.age <- lmer(DaysToClose ~ (1|Cage.x) + AgeAtTest + ds + stab_status + ds*stab_status, data=eardata)
 
 anova(m.earclose.full)
 summary(m.earclose.full)
+print("Age Model")
 anova(m.earclose.age)
 
 r.squaredGLMM(m.earclose.simp)
@@ -74,6 +75,17 @@ ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Result
 
 ```
 
+```{r, age plot}
+ageplot <- ggplot(eardata, aes(AgeAtTest, DaysToClose))+
+  geom_point(aes(color=stab_status), size=4)+
+  scale_color_npg()+
+  xlab("Age at experiment d0") + ylab("Days to close ear")+
+  labs(color="Stability")
+ageplot
+```
+```{r}
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/SIFig_age_ear.tiff", ageplot, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+```
 
 
 

@@ -2,7 +2,7 @@
 title: "9. qPCR calculations"
 author: "varholick"
 date: "1/3/2022"
-modified: "4/1/2022"
+modified: "8/29/2022"
 output: html_document
 
 Pfaffl Method
@@ -97,5 +97,5 @@ head(tidy_data_pfaffl2)
 ```
 
 ```{r}
-write.csv(tidy_data_pfaffl2, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_040122.csv")
+write.csv(tidy_data_pfaffl2, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_082922.csv")
 ```

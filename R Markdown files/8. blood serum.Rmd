@@ -50,11 +50,12 @@ cort_data <- filter(cort_data, Sex.x!="F")
 ```
 
 ```{r}
-m.cort.full <- lmer(ng ~ (1|Cage.x) + ds + stab_status + ds*stab_status, data=cort_data, REML=F, control=lmerControl(optimizer="bobyqa"))
+m.cort.full <- lmer(ng ~ (1|Cage.x) + ds + stab_status + ds*stab_status, data=cort_data)
 m.cort.simp <- lm(ng ~ ds + stab_status + ds*stab_status, data=cort_data)
 
 
 anova(m.cort.full)
+summary(m.cort.full)
 anova(m.cort.simp)
 
 r.squaredGLMM(m.cort.simp)

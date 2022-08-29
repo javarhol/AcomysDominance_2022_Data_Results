@@ -8,6 +8,12 @@ output: html_document
 ```{r setup}
 library(tidyverse)
 library(ggalluvial)
+library(readxl)
+library(ggthemr) #devtools::install_github('Mikata-Project/ggthemr')
+library(ggsci)
+
+library(lme4)
+library(lmerTest)
 ```
 
 ```{r}
@@ -120,13 +126,11 @@ agestab_plot <- ggplot(rank_stab, aes(stab_status, AgeAtTest, color=stab_status,
 agestab_plot
 ```
 ```{r}
-m.agestab <- lmer(AgeAtTest ~ (1|Cage) + stab_status, data=rank_stab)
-m.agestab.simp <- lm(AgeAtTest ~ stab_status, data=rank_stab)
+m.agestab <- lmer(as.numeric(stab_status) ~ (1|Cage) + AgeAtTest, data=rank_stab)
 
 anova(m.agestab)
 summary(m.agestab)
 
-r.squaredGLMM(m.agestab.simp)
 r.squaredGLMM(m.agestab)
 ```
 

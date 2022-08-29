@@ -276,19 +276,23 @@ summary(m.age)
 
 #plots
 ```{r}
-
-grp_plot <- ggplot(males, aes(Behavior, prop_cage, fill=as.factor(GrpSize)))+
-  geom_boxplot()+
+grp_plot <- ggplot(males, aes(Behavior, prop_cage, fill=as.factor(GrpSize), color=as.factor(GrpSize)))+
+  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 0.025)+
+  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
   scale_y_continuous(limits = c(0,1))+
   scale_fill_npg() +
+  scale_color_npg()+
   ylab("proportion of \nbehavior per cage") + xlab("")+
-  guides(fill=guide_legend("Group Size"))
+  guides(fill=guide_legend("Group Size"), color=guide_legend("Group Size"))
 
-age_plot <- ggplot(females, aes(Behavior, prop_cage, fill=Age))+
-  geom_boxplot()+
+age_plot <- ggplot(females, aes(Behavior, prop_cage, fill=Age, color=Age))+
+  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 0.025)+
+  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
   scale_y_continuous(limits = c(0,1))+
   scale_fill_npg() +
-  ylab("proportion of \nbehavior per cage") + xlab("")
+  scale_color_npg()+
+  ylab("proportion of \nbehavior per cage") + xlab("")+
+  labs(fill="Age", color="Age")
 
 fig4 <- plot_grid(
   grp_plot, age_plot,

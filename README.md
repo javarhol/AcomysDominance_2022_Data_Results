@@ -1,6 +1,6 @@
 # AcomysDominance_2022_Data_Results
  
-Enclosed are the supporting information for the publication:
+Enclosed are the supporting information for the publication:https://www.biorxiv.org/content/10.1101/2022.09.13.507818v1 
 
 There are three main folders:
 1. R Markdown files (for the R code)

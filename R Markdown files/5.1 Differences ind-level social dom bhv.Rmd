@@ -34,7 +34,7 @@ ggthemr('flat')
   5. check that all columns have the correct data, delete the coder initials data
 
 ```{r import data}
-adata <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dominanceevents_MASTER_adj.csv", stringsAsFactors=TRUE)
+adata <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dominanceevents_MASTER_adj.csv", stringsAsFactors=TRUE)
 
 #Fixing observation.id inconsistencies...
 adata$Cage <- adata$Observation.id
@@ -96,13 +96,13 @@ ag <- ag %>%
 ag <- rbind(ag, locations)
 
 #add independent variables
-sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
+sex_id <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
 sex_id$Cage <- as.factor(sex_id$Cage)
 ag$Cage <- as.factor(ag$Cage)
 
 ag <- left_join(ag, sex_id, by="Cage")
 
-ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+ind_ds <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebyanimal_edited.csv")
 ind_ds$Cage <- as.factor(ind_ds$Cage)
 ind_ds <- rename(ind_ds, "Opponent.1"=AnimalID)
 
@@ -334,7 +334,7 @@ fig3 <- plot_grid(
   labels = "AUTO", ncol = 2, align = c("h","v")
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_socbhv_plots.tiff", fig3, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_socbhv_plots.tiff", fig3, units="in", width = 6.5, height = 4, device='tiff', dpi=300)
 
 fig3
 ```

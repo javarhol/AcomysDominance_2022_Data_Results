@@ -26,11 +26,11 @@ library(MuMIn)
 ggthemr('flat')
 ```
 ```{r}
-qpcr_data <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_082922.csv")
-sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
-ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
-eardata <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/EarDaysToClose.xlsx")
-stability <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/stabilitybycage.csv")
+qpcr_data <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/qpcr_combined_082922.csv")
+sex_id <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+ind_ds <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebyanimal_edited.csv")
+eardata <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/EarDaysToClose.xlsx")
+stability <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/stabilitybycage.csv")
 
 
 qpcr_data <- left_join(qpcr_data, sex_id[,c(4,6,15)], by="AnimalID")
@@ -80,7 +80,8 @@ cyp_plot <- ggplot(cyp11b1, aes(target.x, GeneExpRat, fill=Sex, color=Sex))+
   stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.75))+
   scale_fill_npg()+
   scale_color_npg()+
-  xlab("") + ylab("Gene expression ratio")
+  xlab("") + ylab("Gene expression ratio")+
+  theme(text = element_text(size = 9)) 
 
 cyp_plot
 ```
@@ -94,7 +95,8 @@ Nr_plot <- ggplot(Nr5a1, aes(ds, GeneExpRat))+
   scale_x_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3))+
   scale_color_npg()+
   xlab("David's Score") + ylab("Gene expression ratio \nNr5a1")+
-  labs(color="Stability")
+  labs(color="Stability")+
+  theme(text = element_text(size = 9)) 
 
 Nr_plot
 ```
@@ -104,10 +106,11 @@ Nr_plot
 
 qplot <- plot_grid(
   cyp_plot, Nr_plot,
-  labels="AUTO", ncol=1, align="v"
+  labels="AUTO", ncol=1, align="v",
+  label_size = 11
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig6_qpcr_plots.tiff", qplot, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig6_qpcr_plots.tiff", qplot, units="in", width = 6.5, height =4, device='tiff', dpi=300)
 
 qplot
 

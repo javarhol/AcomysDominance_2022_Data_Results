@@ -27,10 +27,10 @@ ggthemr('flat')
 ```
 #organize data
 ```{r}
-eardata <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/EarDaysToClose.xlsx")
-sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
-ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
-stability <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/stabilitybycage.csv")
+eardata <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/EarDaysToClose.xlsx")
+sex_id <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+ind_ds <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebyanimal_edited.csv")
+stability <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/stabilitybycage.csv")
 
 eardata <- left_join(eardata, sex_id[,1:16], by="AnimalID")
 eardata <- left_join(eardata, ind_ds, by="AnimalID")
@@ -62,16 +62,17 @@ r.squaredGLMM(m.earclose.age)
 
 ```{r}
 earplot <- ggplot(eardata, aes(ds, DaysToClose))+
-  geom_point(aes(color=stab_status), size=4)+
-  geom_smooth(aes(color=stab_status), method=lm, se=FALSE, size=1.5)+
+  geom_point(aes(color=stab_status), size=1)+
+  geom_smooth(aes(color=stab_status), method=lm, se=FALSE, size=1)+
   scale_x_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3))+
   scale_color_npg()+
   xlab("David's Score") + ylab("Days to close ear")+
-  labs(color="Stability")
+  labs(color="Stability")+
+  theme(text = element_text(size = 10)) 
 earplot
 ```
 ```{r}
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/fig5_ear.tiff", earplot, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/fig5_ear.tiff", earplot, units="in", width = 3, height = 3, device='tiff', dpi=300)
 
 ```
 
@@ -84,7 +85,7 @@ ageplot <- ggplot(eardata, aes(AgeAtTest, DaysToClose))+
 ageplot
 ```
 ```{r}
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/SIFig_age_ear.tiff", ageplot, units="cm", width = 15, height = 15, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/SIFig_age_ear.tiff", ageplot, units="in", width = 3, height = 3, device='tiff', dpi=300)
 ```
 
 

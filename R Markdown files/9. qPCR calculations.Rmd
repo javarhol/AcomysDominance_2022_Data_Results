@@ -16,7 +16,7 @@ library(readxl)
 ```
 
 ```{r import_data}
-raw_data <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qPCR_data_dominance1.xlsx", sheet="DuplicatedRuns_Removed")
+raw_data <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/qPCR_data_dominance1.xlsx", sheet="DuplicatedRuns_Removed")
 ```
 ```{r double_check duplicates}
 raw_data2 <- raw_data %>% 
@@ -60,7 +60,7 @@ Efficiences were determined on March 4th 2021 (Cyp11b1 on April 1st 2022)
 With only three concentrations (1, .1, .01)
 ```{r primer efficiency}
 
-primer_effis <- read_xlsx("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qPCR_primer_effis_converted.xlsx")
+primer_effis <- read_xlsx("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/qPCR_primer_effis_converted.xlsx")
 
 tidy_data_calCt_eff <- left_join(tidy_data_calCt, primer_effis, by="target")
 
@@ -87,7 +87,7 @@ head(tidy_data_pfaffl)
 ```
 ### Add independent variables
 ```{r import inventory data}
-inv_data <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx")
+inv_data <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx")
 ```
 ```{r merge inv with deltaCt values}
 tidy_inv_data <- inv_data[,c(1,2,5,6,7,8)]
@@ -97,5 +97,5 @@ head(tidy_data_pfaffl2)
 ```
 
 ```{r}
-write.csv(tidy_data_pfaffl2, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_082922.csv")
+write.csv(tidy_data_pfaffl2, "/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/qpcr_combined_082922.csv")
 ```

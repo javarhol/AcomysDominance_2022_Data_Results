@@ -23,20 +23,20 @@ ggthemr('flat')
 
 ## Social dominance status data
 ```{r}
-ind_rank_wins <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/winsbyanimal_edited.csv")
+ind_rank_wins <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/winsbyanimal.csv")
 ind_rank_wins <- ind_rank_wins[,2:6]
 ind_rank_wins <- rename(ind_rank_wins, "Cage"="Cage.x")
-sex_id <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
 sex_id$Cage <- as.factor(sex_id$Cage)
 ind_rank_wins$Cage <- as.factor(ind_rank_wins$Cage)
 ind_rank_wins <- left_join(ind_rank_wins, sex_id, by="Cage")
 
-ind_ds <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebyanimal_edited.csv")
+ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
 ind_ds$Cage <- as.factor(ind_ds$Cage)
 ind_ds <- left_join(ind_ds, ind_rank_wins, by=c("AnimalID"="Opponent.1"))
 ind_ds$dom_status_ds <- as.factor(ind_ds$dom_status_ds)
 
-dc_cage <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dcbycage_edited.csv")
+dc_cage <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dcbycage_edited.csv")
 cages <- ind_ds %>% 
   select(Cage.x, DumCage, Sex, GrpSize, Age, Trt) %>% 
   distinct() %>% 
@@ -44,7 +44,7 @@ cages <- ind_ds %>%
 dc_cage$Cage <- as.factor(dc_cage$Cage)
 dc_cage <- left_join(dc_cage, cages, by="Cage")
 
-stp <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/steepbycage_edited.csv")
+stp <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/steepbycage_edited.csv")
 stp$Cage <- as.factor(stp$Cage)
 stp <- left_join(stp, ind_ds, by=c("Cage"="Cage.x"))
 stp <- stp %>% 

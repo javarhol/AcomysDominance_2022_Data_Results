@@ -18,7 +18,6 @@ library(cowplot)
 library(readxl)
 
 #stats
-library(psych)
 library(lme4)
 library(lmerTest)
 library(MuMIn)
@@ -26,11 +25,11 @@ library(MuMIn)
 ggthemr('flat')
 ```
 ```{r}
-qpcr_data <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/qpcr_combined_082922.csv")
-sex_id <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
-ind_ds <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebyanimal_edited.csv")
-eardata <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/EarDaysToClose.xlsx")
-stability <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/stabilitybycage.csv")
+qpcr_data <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_011623.csv")
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+eardata <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/EarDaysToClose.xlsx")
+stability <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/stabilitybycage.csv")
 
 
 qpcr_data <- left_join(qpcr_data, sex_id[,c(4,6,15)], by="AnimalID")
@@ -42,32 +41,29 @@ qpcr_data$Sex <- as.factor(qpcr_data$Sex)
 qpcr_data$Cage.x <- as.factor(qpcr_data$Cage.x)
 qpcr_data$GrpSize <- as.factor(qpcr_data$GrpSize)
 qpcr_data$dom_status_ds <- as.factor(qpcr_data$dom_status_ds)
-qpcr_data$stab_status <- factor(qpcr_data$stab_status, levels=c("Stable", "Unstable", "Unclear"))
+qpcr_data$stab_status <- factor(qpcr_data$stab_status2, levels=c("Enforced stable", "Unstable", "Unenforced stable", "Unmeasurable"))
 ```
 
 ```{r}
-Cyp11a1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="Cyp11a1"), REML=TRUE)
-Star_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="StAR"), REML=TRUE)
-Nr5a1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="Nrb01"), REML=TRUE)
-Nrb01_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="Nr5a1"), REML=TRUE)
-Cyp11b1_m_f <- lmer(GeneExpRat ~  (1|Cage.x) + Sex + ds + stab_status + ds*stab_status, filter(qpcr_data, target.x=="Cyp11b1"), REML=TRUE)
+Cyp11a1_m_f <- lm(GeneExpRat ~ Sex + ds + stab_status2 + ds*stab_status2, filter(qpcr_data, target.x=="Cyp11a1"))
+Star_m_f <- lm(GeneExpRat ~ Sex + ds + stab_status2 + ds*stab_status2, filter(qpcr_data, target.x=="StAR"))
+Nr5a1_m_f <- lm(GeneExpRat ~ Sex + ds + stab_status2 + ds*stab_status2, filter(qpcr_data, target.x=="Nrb01"))
+Nrb01_m_f <- lm(GeneExpRat ~ Sex + ds + stab_status2 + ds*stab_status2, filter(qpcr_data, target.x=="Nr5a1"))
+Cyp11b1_m_f <- lm(GeneExpRat ~  Sex + ds + stab_status2 + ds*stab_status2, filter(qpcr_data, target.x=="Cyp11b1"))
 
 print("Cyp11a1")
 anova(Cyp11a1_m_f)
-r.squaredGLMM(Cyp11a1_m_f)
+summary(Cyp11a1_m_f)
 print("Star")
 anova(Star_m_f)
 r.squaredGLMM(Star_m_f)
 print("Nr5a1")
 anova(Nr5a1_m_f)
-summary(Nr5a1_m_f)
-r.squaredGLMM(Nr5a1_m_f)
 print("Nrb01")
 anova(Nrb01_m_f)
-r.squaredGLMM(Nrb01_m_f)
+summary(Nrb01_m_f)
 print("Cyp11b1")
 anova(Cyp11b1_m_f)
-r.squaredGLMM(Cyp11b1_m_f)
 summary(Cyp11b1_m_f)
 ```
 
@@ -80,7 +76,7 @@ cyp_plot <- ggplot(cyp11b1, aes(target.x, GeneExpRat, fill=Sex, color=Sex))+
   stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.75))+
   scale_fill_npg()+
   scale_color_npg()+
-  xlab("") + ylab("Gene expression ratio")+
+  xlab("") + ylab("Relative ∆Ct to ActinB")+
   theme(text = element_text(size = 9)) 
 
 cyp_plot
@@ -94,23 +90,73 @@ Nr_plot <- ggplot(Nr5a1, aes(ds, GeneExpRat))+
   geom_smooth(aes(color=stab_status), method=lm, se=FALSE, size=1.5)+
   scale_x_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3))+
   scale_color_npg()+
-  xlab("David's Score") + ylab("Gene expression ratio \nNr5a1")+
-  labs(color="Stability")+
-  theme(text = element_text(size = 9)) 
+  xlab("David's Score") + ylab("Nr5a1 \nRelative ∆Ct to ActinB")+
+  labs(color="Type of \n Dom. Relationship")+
+  annotate("text", x = c(-1,1), y = c(.95,.95), label = c("more subordinate","more dominant"))+
+  theme(text = element_text(size = 9), legend.position="none") 
 
 Nr_plot
+```
+```{r}
+Cyp11a1 <- qpcr_data %>% 
+  filter(target.x == "Cyp11a1")
+
+Cypa_plot <- ggplot(Cyp11a1, aes(ds, GeneExpRat))+
+  geom_point(aes(color=stab_status), size=4)+
+  geom_smooth(aes(color=stab_status), method=lm, se=FALSE, size=1.5)+
+  scale_y_continuous(limits=c(1,1.3), breaks=c(1, 1.1, 1.2, 1.3))+
+  scale_x_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3))+
+  scale_color_npg()+
+  xlab("David's Score") + ylab("Cyp11a1 \nRelative ∆Ct to ActinB")+
+  labs(color="Type of \n Dom. Relationship")+
+  annotate("text", x = c(-1.5,1.5), y = c(1,1), label = c("more subordinate","more dominant"))+
+  theme(text = element_text(size = 9), legend.position="none") 
+
+Cypa_plot
+```
+```{r}
+Nrb01 <- qpcr_data %>% 
+  filter(target.x == "Nrb01")
+
+nrb_plot <- ggplot(Nrb01, aes(ds, GeneExpRat))+
+  geom_point(aes(color=ds), size=4)+
+  geom_smooth(method=lm, se=FALSE, size=1.5, color="black")+
+  scale_x_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3))+
+  scale_color_gsea()+
+  xlab("David's Score") + ylab("Nr0b1 \nRelative ∆Ct to ActinB")+
+  annotate("text", x = c(-1.5,1.5), y = c(.95,.95), label = c("more subordinate","more dominant"))+
+  labs(color="David's \nscore")+
+  theme(text = element_text(size = 9), legend.position="none")
+
+nrb_plot
+```
+```{r}
+cypb <- qpcr_data %>% 
+  filter(target.x == "Cyp11b1")
+
+cypb_plot <- ggplot(cypb, aes(stab_status, GeneExpRat, color=stab_status, fill=stab_status))+
+  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.75), binwidth = 0.0125)+
+  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.75))+
+  scale_fill_npg()+
+  scale_color_npg()+
+  xlab("Type of Dom. Relationship") + ylab("Cyp11b1 \nRelative ∆Ct to ActinB")+
+  theme(text = element_text(size = 9), legend.position="none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) 
+
+cypb_plot
 ```
 
 
 ```{r}
 
+secondplot <- plot_grid(nrb_plot, cypb_plot, labels=c("B", "C"), ncol=1, label_size=11)
+
 qplot <- plot_grid(
-  cyp_plot, Nr_plot,
-  labels="AUTO", ncol=1, align="v",
+  Cypa_plot, secondplot,
+  labels="AUTO",  ncol=2,
   label_size = 11
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig6_qpcr_plots.tiff", qplot, units="in", width = 6.5, height =4, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig6_qpcr_plots_rev.tiff", qplot, units="in", width = 20, height =10, device='tiff', dpi=300)
 
 qplot
 

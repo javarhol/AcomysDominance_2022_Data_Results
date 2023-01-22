@@ -11,26 +11,27 @@ library(ggalluvial)
 library(readxl)
 library(ggthemr) #devtools::install_github('Mikata-Project/ggthemr')
 library(ggsci)
+library(cowplot)
 
 library(lme4)
 library(lmerTest)
 ```
 
 ```{r}
-week_rank <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebweek_edited.csv")
+week_rank <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebweek_edited.csv")
 week_rank$Cage <- as.factor(week_rank$Cage)
-sex_id <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet3")
 sex_id$Cage <- as.factor(sex_id$Cage)
 week_rank <- left_join(week_rank, sex_id, by="Cage")
 week_rank <- rename(week_rank, "Opponent.1"=AnimalID)
-dumcage <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebyanimal_edited.csv")
+dumcage <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
 dumcage <- dumcage[,c(1,4)]
 dumcage <- distinct(dumcage)
 dumcage$Cage <- as.factor(dumcage$Cage)
 
 week_rank <- left_join(week_rank, dumcage, by="Cage")
 
-cumm_dom <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebyanimal_edited.csv")
+cumm_dom <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
 cumm_dom <- rename(cumm_dom, "cumm_dom_status"=dom_status_ds)
 cumm_dom <- rename(cumm_dom, "Opponent.1"=AnimalID)
 week_rank <- left_join(week_rank, cumm_dom[,c(2,5)], by="Opponent.1")
@@ -39,7 +40,7 @@ week_rank <- week_rank %>%
   mutate(dom_status_num=case_when(dom_status_ds=="Dominant"~3,
                                   dom_status_ds=="Subordinate"~1,
                                   dom_status_ds=="Subdominant"~2,
-                                  dom_status_ds=="Unclear"~0))
+                                  dom_status_ds=="Unmeasurable"~0))
 
 
 stability <- week_rank %>% 
@@ -47,27 +48,18 @@ stability <- week_rank %>%
   spread(Week, dom_status_num) %>% 
   mutate(Week12=ifelse(`Week1`==`Week2`,1,0))%>% 
   mutate(Week23=ifelse(`Week2`==`Week3`,1,0)) %>% 
-  mutate(stab_status=ifelse(Week12+Week23==2,"Stable","Unstable"))
+  mutate(stab_status=ifelse(Week12+Week23==2,"Enforced stable","Unstable"))
 
-week_rank_stab <- stability %>% 
-  select(Opponent.1, stab_status) %>% 
+stability2 <- stability %>% 
+  mutate(stab_status2=ifelse(`Week1`==0 & stab_status=="Unstable" 
+                             |`Week2`==0 & stab_status=="Unstable"
+                             | `Week3`==0 & stab_status=="Unstable","Unenforced stable",stab_status))
+
+week_rank_stab <- stability2 %>% 
+  select(Opponent.1, stab_status2) %>% 
   left_join(week_rank, by="Opponent.1") %>% 
-  mutate(stab_status=ifelse(cumm_dom_status=="Unclear","Unclear",stab_status)) %>% 
-  mutate(stab_status=ordered(stab_status, levels=c("Stable", "Unstable", "Unclear")))
-
-#reassign cages 922587, 927693, 941702 as unclear across all weeks
-reassign <- c("922587", "927693", "941702")
-
-week_rank_stab_1 <- week_rank_stab %>% 
-  filter(Cage %in% reassign) %>% 
-  mutate(stab_status="Unclear")
-
-week_rank_stab_2 <- week_rank_stab %>% 
-  filter(!Cage %in% reassign)
-
-week_rank_stab <- rbind(week_rank_stab_1, week_rank_stab_2)
-
-##stab_status_2 is adding Unclear to stability
+  mutate(stab_status2=ifelse(cumm_dom_status=="Unmeasurable","Unmeasurable",stab_status2)) %>% 
+  mutate(stab_status2=ordered(stab_status2, levels=c("Enforced stable", "Unstable", "Unenforced stable", "Unmeasurable")))
 ```
 
 
@@ -77,15 +69,15 @@ river_data <- week_rank_stab %>%
   mutate(dom_status_abb=case_when(dom_status_ds=="Dominant"~"Dom",
                                   dom_status_ds=="Subordinate"~"Sub",
                                   dom_status_ds=="Subdominant"~"Subd",
-                                  dom_status_ds=="Unclear"~"Unc"))%>% 
-  select(Opponent.1, Cage, DumCage, stab_status, Trt, Sex, GrpSize, Age, Week, dom_status_abb) %>% 
+                                  dom_status_ds=="Unmeasurable"~"Unm"))%>% 
+  select(Opponent.1, Cage, DumCage, stab_status2, Trt, Sex, GrpSize, Age, Week, dom_status_abb) %>% 
   spread(Week, dom_status_abb)
 river_data$Week1 <- as.factor(river_data$Week1)
 river_data$Week2 <- as.factor(river_data$Week2)
 river_data$Week3 <- as.factor(river_data$Week3)
 
 river_data$Trt <- factor(river_data$Trt, levels=c("YFD", "YMD", "OFD", "YMT"))
-river_data$stab_status <- factor(river_data$stab_status, levels=c("Stable", "Unstable", "Unclear"))
+river_data$stab_status <- factor(river_data$stab_status2, levels=c("Enforced stable", "Unstable", "Unenforced stable", "Unmeasurable"))
 
 ```
 
@@ -93,7 +85,7 @@ river_data$stab_status <- factor(river_data$stab_status, levels=c("Stable", "Uns
 ```{r}
 
 fig2 <- ggplot(river_data, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
-  geom_alluvium(aes(fill=stab_status, text=DumCage))+
+  geom_alluvium(aes(fill=stab_status2, text=DumCage))+
   geom_text(stat="alluvium", aes(label=DumCage), hjust=0, nudge_x=0.2, size=3)+
   geom_stratum() + 
   geom_text(stat="stratum", aes(label=after_stat(stratum)), size=2)+
@@ -101,33 +93,33 @@ fig2 <- ggplot(river_data, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
   xlab("")+
   scale_y_continuous(expand=c(0,0), breaks = seq(1,15,1))+
   scale_fill_npg()+
-  labs(fill="Stability")+
+  labs(fill="Type of \n Dominance Relationship")+
   theme(legend.position = "none", plot.title = element_text(hjust = 0.5), axis.text.y=element_blank(), axis.ticks.y=element_blank())+
   facet_wrap(~Trt, scales="free")
 fig2
 ```
 ```{r}
 rank_stab <- week_rank_stab %>% 
-  select(Opponent.1, Cage, stab_status) %>% 
+  select(Opponent.1, Cage, stab_status2) %>% 
   rename("AnimalID"=Opponent.1) %>% 
   distinct()
-sex_id2 <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+sex_id2 <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
 sex_id2 <- distinct(sex_id2[,c(3,6,15)])
 rank_stab <- left_join(rank_stab, sex_id2, by="AnimalID")
 rank_stab <- left_join(rank_stab, dumcage, by="Cage")
 rank_stab <- distinct(rank_stab)
-rank_stab$stab_status <- factor(rank_stab$stab_status, levels=c("Stable", "Unstable", "Unclear"))
+rank_stab$stab_status2 <- factor(rank_stab$stab_status2, levels=c("Enforced stable", "Unstable", "Unenforced stable", "Unmeasurable"))
 
-agestab_plot <- ggplot(rank_stab, aes(stab_status, AgeAtTest, color=stab_status, label=DumCage))+
-  geom_jitter(size=4) +
+agestab_plot <- ggplot(rank_stab, aes(stab_status2, AgeAtTest, color=stab_status2, label=DumCage))+
+  geom_jitter(size=1.5) +
   scale_color_npg()+
   xlab("") + ylab("Age at experiment d0")+
-  labs(color="Stability")+
-  theme(text = element_text(size = 10))
+  labs(color="Type of \n Dom. Relationship")+
+  theme(text = element_text(size = 10), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 agestab_plot
 ```
 ```{r}
-m.agestab <- lmer(as.numeric(stab_status) ~ (1|Cage) + AgeAtTest, data=rank_stab)
+m.agestab <- lmer(as.numeric(stab_status2) ~ (1|Cage) + AgeAtTest, data=rank_stab)
 
 anova(m.agestab)
 summary(m.agestab)
@@ -143,15 +135,15 @@ figx <- plot_grid(
   label_size = 12
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.tiff", figx, units="in", width = 6.5, height = 4, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.tiff", figx, units="in", width = 7, height = 4, device='tiff', dpi=300)
 
 figx
 ```
 ```{r}
 rank_stab <- week_rank_stab %>% 
-  select(Opponent.1, Cage, stab_status) %>% 
+  select(Opponent.1, Cage, stab_status2) %>% 
   rename("AnimalID"=Opponent.1) %>% 
   distinct()
-write.csv(rank_stab, "/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/stabilitybycage.csv")
+write.csv(rank_stab, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/stabilitybycage.csv")
 ```
 

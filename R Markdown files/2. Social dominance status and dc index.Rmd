@@ -322,7 +322,7 @@ wins_rank <- inventory2 %>%
 
 wins_rank$dom_rank <- gsub("1.5", "0", wins_rank$dom_rank)
 wins_rank$dom_status <- as.factor(wins_rank$dom_rank)
-wins_rank$dom_status <- gsub("0", "Unclear", wins_rank$dom_status)
+wins_rank$dom_status <- gsub("0", "Unmeasurable", wins_rank$dom_status)
 wins_rank$dom_status <- gsub("1", "Dominant", wins_rank$dom_status)
 wins_rank$dom_status <- gsub("2", "Subordinate", wins_rank$dom_status)
 wins_rank$dom_status <- gsub("3", "Subordinate", wins_rank$dom_status)
@@ -350,7 +350,7 @@ wins_week2$dom_status <- gsub("1", "Dominant", wins_week2$dom_status)
 wins_week2$dom_status <- gsub("2.5", "Subordinate", wins_week2$dom_status)
 wins_week2$dom_status <- gsub("2", "Subordinate", wins_week2$dom_status)
 wins_week2$dom_status <- gsub("3", "Subordinate", wins_week2$dom_status)
-wins_week2$dom_status <- gsub("0", "Unclear", wins_week2$dom_status)
+wins_week2$dom_status <- gsub("0", "Unmeasurable", wins_week2$dom_status)
 
 wins_week2
 ```

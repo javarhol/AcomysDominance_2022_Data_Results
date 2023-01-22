@@ -18,7 +18,6 @@ library(cowplot)
 library(readxl)
 
 #stats
-library(psych)
 library(lme4)
 library(lmerTest)
 library(MuMIn)
@@ -44,7 +43,7 @@ cort_data$Sex.x <- as.factor(cort_data$Sex.x)
 cort_data$Cage.x <- as.factor(cort_data$Cage.x)
 cort_data$GrpSize <- as.factor(cort_data$GrpSize)
 cort_data$dom_status_ds <- as.factor(cort_data$dom_status_ds)
-cort_data$stab_status <- factor(cort_data$stab_status, levels=c("Stable", "Unstable", "Unclear"))
+cort_data$stab_status <- factor(cort_data$stab_status, levels=c("Enforced stable", "Unstable", "Unenforced stable", "Unmeasurable"))
 
 cort_data <- filter(cort_data, Sex.x!="F")
 ```
@@ -55,7 +54,6 @@ m.cort.simp <- lm(ng ~ ds + stab_status + ds*stab_status, data=cort_data)
 
 
 anova(m.cort.full)
-summary(m.cort.full)
 anova(m.cort.simp)
 
 r.squaredGLMM(m.cort.simp)
@@ -74,7 +72,8 @@ cortplot <- ggplot(cort_data, aes(ds, ng))+
   scale_x_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3))+
   scale_color_npg()+
   xlab("David's Score") + ylab("ng of Cortisol")+
-  labs(color="Stability")
+  annotate("text", x = c(-2.485,2.525), y = c(2,2), label = c("more subordinate","more dominant"))+
+  labs(color="Type of \n Dom. Relationship")
 cortplot
 ```
 

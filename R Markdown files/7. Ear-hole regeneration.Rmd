@@ -27,10 +27,10 @@ ggthemr('flat')
 ```
 #organize data
 ```{r}
-eardata <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/EarDaysToClose.xlsx")
-sex_id <- read_excel("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
-ind_ds <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/dscorebyanimal_edited.csv")
-stability <- read.csv("/Volumes/GoogleDrive-105793286447324059497/My Drive/UF/Data_AcomysDominance/Data for Publication/stabilitybycage.csv")
+eardata <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/EarDaysToClose.xlsx")
+sex_id <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx", sheet = "Sheet1")
+ind_ds <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/dscorebyanimal_edited.csv")
+stability <- read.csv("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/stabilitybycage.csv")
 
 eardata <- left_join(eardata, sex_id[,1:16], by="AnimalID")
 eardata <- left_join(eardata, ind_ds, by="AnimalID")
@@ -40,20 +40,21 @@ eardata$Sex <- as.factor(eardata$Sex)
 eardata$Cage.x <- as.factor(eardata$Cage.x)
 eardata$GrpSize <- as.factor(eardata$GrpSize)
 eardata$dom_status_ds <- as.factor(eardata$dom_status_ds)
-eardata$stab_status <- factor(eardata$stab_status, levels=c("Stable", "Unstable", "Unclear"))
+eardata$stab_status2 <- factor(eardata$stab_status2, levels=c("Enforced stable", "Unstable", "Unenforced stable", "Unmeasurable"))
 ```
 
 #mixed model
 ```{r}
-m.earclose.full <- lmer(DaysToClose ~ (1|Cage.x) + ds + stab_status + ds*stab_status, data=eardata)
-m.earclose.simp <- lm(DaysToClose ~ ds + stab_status + ds*stab_status, data=eardata)
+m.earclose.full <- lmer(DaysToClose ~ (1|Cage.x) + ds + stab_status2 + ds*stab_status2, data=eardata)
+m.earclose.simp <- lm(DaysToClose ~ ds + stab_status2 + ds*stab_status2, data=eardata)
 
-m.earclose.age <- lmer(DaysToClose ~ (1|Cage.x) + AgeAtTest + ds + stab_status + ds*stab_status, data=eardata)
+m.earclose.age <- lmer(DaysToClose ~ (1|Cage.x) + AgeAtTest + ds + stab_status2 + ds*stab_status2, data=eardata)
 
 anova(m.earclose.full)
 summary(m.earclose.full)
 print("Age Model")
 anova(m.earclose.age)
+summary(m.earclose.full)
 
 r.squaredGLMM(m.earclose.simp)
 r.squaredGLMM(m.earclose.full)
@@ -62,26 +63,27 @@ r.squaredGLMM(m.earclose.age)
 
 ```{r}
 earplot <- ggplot(eardata, aes(ds, DaysToClose))+
-  geom_point(aes(color=stab_status), size=1)+
-  geom_smooth(aes(color=stab_status), method=lm, se=FALSE, size=1)+
+  geom_point(aes(color=stab_status2), size=1)+
+  geom_smooth(aes(color=stab_status2), method=lm, se=FALSE, size=1)+
   scale_x_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3))+
   scale_color_npg()+
   xlab("David's Score") + ylab("Days to close ear")+
-  labs(color="Stability")+
+  annotate("text", x = c(-2.525,2.525), y = c(2,2), label = c("more subordinate","more dominant"))+
+  labs(color="Type of \n Dom. Relationship")+
   theme(text = element_text(size = 10)) 
 earplot
 ```
 ```{r}
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/fig5_ear.tiff", earplot, units="in", width = 3, height = 3, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/fig5_ear.tiff", earplot, units="in", width = 6, height = 3, device='tiff', dpi=300)
 
 ```
 
 ```{r, age plot}
 ageplot <- ggplot(eardata, aes(AgeAtTest, DaysToClose))+
-  geom_point(aes(color=stab_status), size=4)+
+  geom_point(aes(color=stab_status2), size=4)+
   scale_color_npg()+
   xlab("Age at experiment d0") + ylab("Days to close ear")+
-  labs(color="Stability")
+  labs(color="Type of \n Dom. Relationship")
 ageplot
 ```
 ```{r}

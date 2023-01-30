@@ -87,7 +87,7 @@ ageplot <- ggplot(eardata, aes(AgeAtTest, DaysToClose))+
 ageplot
 ```
 ```{r}
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/SIFig_age_ear.tiff", ageplot, units="in", width = 3, height = 3, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/SIFig_age_ear.tiff", ageplot, units="in", width = 6, height = 3, device='tiff', dpi=300)
 ```
 
 

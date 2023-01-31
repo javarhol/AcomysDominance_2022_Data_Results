@@ -148,12 +148,12 @@ cypb_plot
 
 ```{r}
 
-secondplot <- plot_grid(nrb_plot, cypb_plot, labels=c("B", "C"), ncol=1, label_size=11)
+secondplot <- plot_grid(nrb_plot, cypb_plot, labels=c("B", "C"), ncol=1, label_size=20)
 
 qplot <- plot_grid(
   Cypa_plot, secondplot,
   labels="AUTO",  ncol=2,
-  label_size = 11
+  label_size = 20
 )
 
 ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig6_qpcr_plots_rev.tiff", qplot, units="in", width = 20, height =10, device='tiff', dpi=300)

@@ -63,13 +63,13 @@ r.squaredGLMM(m.earclose.age)
 
 ```{r}
 earplot <- ggplot(eardata, aes(ds, DaysToClose))+
-  geom_point(aes(color=stab_status2), size=1)+
+  geom_point(aes(color=stab_status2, shape=stab_status2), size=2)+
   geom_smooth(aes(color=stab_status2), method=lm, se=FALSE, size=1)+
   scale_x_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3))+
   scale_color_npg()+
   xlab("David's Score") + ylab("Days to close ear")+
   annotate("text", x = c(-2,2), y = c(2,2), label = c("more subordinate","more dominant"))+
-  labs(color="Type of \n Dom. Relationship")+
+  labs(color="Stability Category", shape="Stability Category")+
   theme(text = element_text(size = 10)) 
 earplot
 ```
@@ -83,7 +83,7 @@ ageplot <- ggplot(eardata, aes(AgeAtTest, DaysToClose))+
   geom_point(aes(color=stab_status2), size=4)+
   scale_color_npg()+
   xlab("Age at experiment d0") + ylab("Days to close ear")+
-  labs(color="Type of \n Dom. Relationship")
+  labs(color="Stability Category")
 ageplot
 ```
 ```{r}

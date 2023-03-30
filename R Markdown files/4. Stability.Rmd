@@ -114,7 +114,7 @@ agestab_plot <- ggplot(rank_stab, aes(stab_status2, AgeAtTest, color=stab_status
   geom_jitter(size=1.5) +
   scale_color_npg()+
   xlab("") + ylab("Age at experiment d0")+
-  labs(color="Type of \n Dom. Relationship")+
+  labs(color="Stability Category")+
   theme(text = element_text(size = 10), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 agestab_plot
 ```

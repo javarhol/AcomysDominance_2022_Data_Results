@@ -15,10 +15,7 @@ library(igraph)
 library(ggplot2)
 library(ggsci)
 library(cowplot)
-library(ggthemr)
 library(stringr)
-
-ggthemr('flat')
 ```
 ##Extract data from BORIS
 1 Open project file in BORIS
@@ -184,8 +181,10 @@ sex_dyads_dom <- ag3 %>%
   filter(dom_status_ds=="Dominant") %>% 
   filter(Behavior %in% off)
 
-ggplot(sex_dyads_dom, aes(Behavior, n, fill=Sex))+
-  geom_boxplot()+
+ggplot(sex_dyads_dom)+
+  stat_summary(mapping=aes(Behavior, n, fill=Sex), geom="col", fun="mean", color="black", position=position_dodge2(width=0.90))+
+  geom_point(mapping=aes(Behavior, n, group=Sex), color="black", position=position_dodge2(width=0.90))+
+  stat_summary(mapping=aes(Behavior, n, group=Sex), geom="errorbar", fun.data="mean_se", color="black", size=0.5, position=position_dodge2(width=0.90))+
   scale_fill_npg()
 ```
 #Test, sex
@@ -207,6 +206,12 @@ sex_dyads_sub$Behavior <- factor(sex_dyads_sub$Behavior, levels=c("Freeze", "Ind
 
 ggplot(sex_dyads_sub, aes(Behavior, n, fill=Sex))+
   geom_boxplot()+
+  scale_fill_npg()
+
+ggplot(sex_dyads_sub)+
+  stat_summary(mapping=aes(Behavior, n, fill=Sex), geom="col", fun="mean", color="black", position=position_dodge2(width=0.90))+
+  geom_point(mapping=aes(Behavior, n, group=Sex), color="black", position=position_dodge2(width=0.90))+
+  stat_summary(mapping=aes(Behavior, n, group=Sex), geom="errorbar", fun.data="mean_se", color="black", size=0.5, position=position_dodge2(width=0.90))+
   scale_fill_npg()
 ```
 #Test, sex sub
@@ -290,42 +295,46 @@ summary(m.males.domsub)
 
 
 ```{r grouped plot}
-dom_sex_plot <- ggplot(sex_dyads_dom, aes(Behavior, n, color=Sex, fill=Sex))+
-  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 8)+
-  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
-  scale_y_continuous(limits=c(0,200))+
-  scale_color_npg()+
-  scale_fill_npg()+
-  ylab("Total freq.") + xlab("") +
-  theme(legend.position = "none")
-
-sub_sex_plot <- ggplot(sex_dyads_sub, aes(Behavior, n, color=Sex, fill=Sex))+
-  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 8)+
-  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
-  scale_y_continuous(limits=c(0,200))+
-  scale_color_npg()+
+dom_sex_plot <- ggplot(sex_dyads_dom)+
+  stat_summary(mapping=aes(Behavior, n, fill=Sex), geom="col", fun="mean", color="black", position=position_dodge2(width=0.90))+
+  #geom_point(mapping=aes(Behavior, n, group=Sex), color="black", size=0.5, position=position_dodge2(width=0.90))+
+  stat_summary(mapping=aes(Behavior, n, group=Sex), geom="errorbar", fun.data="mean_se", color="black", size=0.5, position=position_dodge2(width=0.90))+
+  scale_y_continuous(limits=c(0,200), expand=c(0,0))+
   scale_fill_npg()+
   ylab("Total freq.") + xlab("")+
-  theme(legend.position = "right")
+  theme_cowplot()+
+  theme(legend.position = "none")
+
+sub_sex_plot <- ggplot(sex_dyads_sub)+
+  stat_summary(mapping=aes(Behavior, n, fill=Sex), geom="col", fun="mean", color="black", position=position_dodge2(width=0.90))+
+  #geom_point(mapping=aes(Behavior, n, group=Sex), color="black", size=0.5, position=position_dodge2(width=0.90))+
+  stat_summary(mapping=aes(Behavior, n, group=Sex), geom="errorbar", fun.data="mean_se", color="black", size=0.5, position=position_dodge2(width=0.90))+
+  scale_y_continuous(limits=c(0,200), expand=c(0,0))+
+  ylab("Total freq.") + xlab("")+
+  scale_fill_npg()+
+  theme_cowplot()
 
 males_plot <- ggplot(males_dom, aes(Behavior, n, color=as.factor(GrpSize), fill=as.factor(GrpSize)))+
-  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 8)+
-  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
-  scale_y_continuous(limits=c(0,200))+
+  stat_summary(mapping=aes(Behavior, n, fill=as.factor(GrpSize)), geom="col", fun="mean", color="black", position=position_dodge2(width=0.90))+
+  #geom_point(mapping=aes(Behavior, n, group=as.factor(GrpSize)), color="black", size=0.5, position=position_dodge2(width=0.90))+
+  stat_summary(mapping=aes(Behavior, n, group=as.factor(GrpSize)), geom="errorbar", fun.data="mean_se", color="black", size=0.5, position=position_dodge2(width=0.90))+
+  scale_y_continuous(limits=c(0,200), expand=c(0,0))+
   scale_color_manual(values=c("#00A087FF", "#3C5488FF"))+
   scale_fill_manual(values=c("#00A087FF", "#3C5488FF"))+
   ylab("Total freq.") + xlab("")+
+  theme_cowplot()+
   theme(legend.position = "none")
 
-males_sub_plot <- ggplot(males_sub, aes(Behavior, n, color=as.factor(GrpSize), fill=as.factor(GrpSize)))+
-  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 8)+
-  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
-  scale_y_continuous(limits=c(0,200))+
-  scale_color_manual(values=c("#00A087FF", "#3C5488FF"))+
+males_sub_plot <- ggplot(males_sub)+
+  stat_summary(mapping=aes(Behavior, n, fill=as.factor(GrpSize)), geom="col", fun="mean", color="black", position=position_dodge2(width=0.90))+
+  #geom_point(mapping=aes(Behavior, n, group=as.factor(GrpSize)), color="black", size=0.5, position=position_dodge2(width=0.90))+
+  stat_summary(mapping=aes(Behavior, n, group=as.factor(GrpSize)), geom="errorbar", fun.data="mean_se", color="black", size=0.5, position=position_dodge2(width=0.90))+
+  scale_y_continuous(limits=c(0,200), expand=c(0,0))+
   scale_fill_manual(values=c("#00A087FF", "#3C5488FF"))+
   ylab("Total freq.") + xlab("")+
-  guides(fill=guide_legend("Group \nSize"), color=guide_legend("Group \nSize"))+
-  theme(legend.position = "right")
+  guides(fill=guide_legend(str_wrap("Group Size Males", 5)))+
+  theme(legend.position = "right")+
+  theme_cowplot()
 
 
 fig3 <- plot_grid(
@@ -334,7 +343,7 @@ fig3 <- plot_grid(
   labels = "AUTO", ncol = 2, align = c("h","v")
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_socbhv_plots.tiff", fig3, units="in", width = 6.5, height = 4, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig3_socbhv_plots.png", fig3, units="in", width = 9, height = 6, device='png', dpi=300)
 
 fig3
 ```

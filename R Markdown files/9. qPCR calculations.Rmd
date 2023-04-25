@@ -55,48 +55,87 @@ tidy_data_calCt <- cal_tidy %>%
 head(tidy_data_calCt)
 ```
 
-### Adjust Ct values for primer efficiency
+### Adjust Ct values for primer efficiency (removed on 04.11.2023)
 Efficiences were determined on March 4th 2021 (Cyp11b1 on April 1st 2022)
 With only three concentrations for calculation (1, .1, .01), extended concentrations in data folder
 ```{r primer efficiency}
 
-primer_effis <- read_xlsx("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qPCR_primer_effis_converted.xlsx")
+#primer_effis <- read_xlsx("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qPCR_primer_effis_converted.xlsx")
 
-tidy_data_calCt_eff <- left_join(tidy_data_calCt, primer_effis, by="target")
+#tidy_data_calCt_eff <- left_join(tidy_data_calCt, primer_effis, by="target")
 
-tidy_data_calCt_eff <- tidy_data_calCt_eff %>%
-  mutate(eff_Ct = conv_effi^(calb_Ct))
+#tidy_data_calCt_eff <- tidy_data_calCt_eff %>%
+  #mutate(eff_Ct = conv_effi^(calb_Ct))
 
-head(tidy_data_calCt_eff)
+#head(tidy_data_calCt_eff)
 ```
 
-### Calculate DeltaCt (gene expression ratio)
+### Calculate DeltaCt (target - ActinB)
 ```{r}
-test_data <- tidy_data_calCt_eff %>% 
+test_data <- tidy_data_calCt %>% 
   filter(target!="ActinB")
-ActinB <- tidy_data_calCt_eff %>%
+ActinB <- tidy_data_calCt %>%
   filter(target=="ActinB")
 
 HK_tidy <- left_join(test_data, ActinB, by=c("sample.x"))
-HK_tidy <- mutate(HK_tidy, GeneExpRat = eff_Ct.x / eff_Ct.y)
+HK_tidy <- mutate(HK_tidy, deltact = calb_Ct.x - calb_Ct.y)
 
-tidy_data_pfaffl <- HK_tidy %>% 
+tidy_data_deltact <- HK_tidy %>% 
   data.frame() %>% 
-  select(sample.x, target.x, GeneExpRat)
-head(tidy_data_pfaffl)
+  select(sample.x, target.x, deltact)
+head(tidy_data_deltact)
 ```
+
+### Calculate delta delta Ct for each Gene of Interest 
+- separate each gene of interest
+- Divide delta Ct by the highest delta Ct value for each gene of interest
+- 2^(-delta delta ct)
+- merge each gene of interest to one dataframe
+```{r}
+#separate genes of interest
+Cyp11a1 <- filter(tidy_data_deltact, target.x=="Cyp11a1")
+Cyp11b1 <- filter(tidy_data_deltact, target.x=="Cyp11b1")
+Nr5a1 <- filter(tidy_data_deltact, target.x=="Nr5a1")
+Nrb01 <- filter(tidy_data_deltact, target.x=="Nrb01")
+StAR <- filter(tidy_data_deltact, target.x=="StAR")
+
+#highest delta ct for each gene of interest
+Cyp11a1 <- mutate(Cyp11a1, highestdelta=max(deltact))
+Cyp11b1 <- mutate(Cyp11b1, highestdelta=max(deltact))
+Nr5a1 <- mutate(Nr5a1, highestdelta=max(deltact))
+Nrb01 <- mutate(Nrb01, highestdelta=max(deltact))
+StAR <- mutate(StAR, highestdelta=max(deltact))
+
+#delta delta ct
+Cyp11a1 <- mutate(Cyp11a1, deltadeltact=(highestdelta-deltact))
+Cyp11b1 <- mutate(Cyp11b1, deltadeltact=(highestdelta-deltact))
+Nr5a1 <- mutate(Nr5a1, deltadeltact=(highestdelta-deltact))
+Nrb01 <- mutate(Nrb01, deltadeltact=(highestdelta-deltact))
+StAR <- mutate(StAR, deltadeltact=(highestdelta-deltact))
+
+#fold.change
+Cyp11a1 <- mutate(Cyp11a1, rel_conc=(2^-(deltadeltact)))
+Cyp11b1 <- mutate(Cyp11b1, rel_conc=(2^-(deltadeltact)))
+Nr5a1 <- mutate(Nr5a1, rel_conc=(2^-(deltadeltact)))
+Nrb01 <- mutate(Nrb01, rel_conc=(2^-(deltadeltact)))
+StAR <- mutate(StAR, rel_conc=(2^-(deltadeltact)))
+
+#merged data
+rel_conc_data = rbind(Cyp11a1, Cyp11b1, Nr5a1, Nrb01, StAR)
+```
+
 ### Add independent variables
 ```{r import inventory data}
 inv_data <- read_excel("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/AcomysDomRegen_Inventory.xlsx")
 ```
 ```{r merge inv with deltaCt values}
 tidy_inv_data <- inv_data[,c(1,2,5,6,7,8)]
-tidy_data_pfaffl <- rename(tidy_data_pfaffl, BlindID = sample.x)
-tidy_data_pfaffl2 <- left_join(tidy_data_pfaffl, tidy_inv_data, by="BlindID")
-head(tidy_data_pfaffl2)
+rel_conc_data <- rename(rel_conc_data, BlindID = sample.x)
+rel_conc_data2 <- left_join(rel_conc_data, tidy_inv_data, by="BlindID")
+head(rel_conc_data2)
 ```
 
 ```{r}
-write.csv(tidy_data_pfaffl2, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_011623.csv")
+write.csv(rel_conc_data2, "/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/Data/qpcr_combined_041123.csv")
           
 ```

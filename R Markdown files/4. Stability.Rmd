@@ -8,8 +8,8 @@ output: html_document
 ```{r setup}
 library(tidyverse)
 library(ggalluvial)
+library(ggrepel)
 library(readxl)
-library(ggthemr) #devtools::install_github('Mikata-Project/ggthemr')
 library(ggsci)
 library(cowplot)
 
@@ -82,7 +82,7 @@ river_data$stab_status <- factor(river_data$stab_status2, levels=c("Enforced sta
 ```
 
 
-```{r}
+```{r, alluvial}
 
 fig2 <- ggplot(river_data, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
   geom_alluvium(aes(fill=stab_status2, text=DumCage))+
@@ -95,9 +95,34 @@ fig2 <- ggplot(river_data, aes(axis1=Week1, axis2=Week2, axis3=Week3))+
   scale_fill_npg()+
   labs(fill="Type of \n Dominance Relationship")+
   theme(legend.position = "none", plot.title = element_text(hjust = 0.5), axis.text.y=element_blank(), axis.ticks.y=element_blank())+
-  facet_wrap(~Trt, scales="free")
+  facet_wrap(~Trt, scales="free")+
+  theme_cowplot()
 fig2
 ```
+
+```{r, }
+
+week_rank_stab$Trt <- factor(week_rank_stab$Trt, levels=c("YFD", "YMD", "OFD", "YMT"))
+week_rank_stab$stab_status <- factor(week_rank_stab$stab_status2, levels=c("Enforced stable", "Unstable", "Unenforced stable", "Unmeasurable"))
+
+week_rank_stab2 <- week_rank_stab %>% 
+  separate(Opponent.1, into=c("CageX", "cageid"), sep="-") %>% 
+  mutate(DumCage2=paste(DumCage,cageid, sep="."))
+
+fig2.1 <- ggplot(week_rank_stab2, aes(Week, ds, color=stab_status2, group=DumCage2))+
+  geom_line(size=2)+
+  geom_text_repel(data=subset(week_rank_stab2, Week=="Week1"),
+                   aes(label=DumCage2), nudge_x=-1)+
+  facet_wrap(vars(Trt))+
+  scale_y_continuous(limits=c(-3,3), breaks=c(-3,-2,-1,0,1,2,3), expand=c(0,0))+
+  xlab("") + ylab("David's Score")+
+  labs(color="Stability \nCategory")+
+  scale_color_npg()+
+  theme_cowplot() + panel_border() + theme(legend.position="none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+fig2.1
+```
+
+
 ```{r}
 rank_stab <- week_rank_stab %>% 
   select(Opponent.1, Cage, stab_status2) %>% 
@@ -111,11 +136,13 @@ rank_stab <- distinct(rank_stab)
 rank_stab$stab_status2 <- factor(rank_stab$stab_status2, levels=c("Enforced stable", "Unstable", "Unenforced stable", "Unmeasurable"))
 
 agestab_plot <- ggplot(rank_stab, aes(stab_status2, AgeAtTest, color=stab_status2, label=DumCage))+
-  geom_jitter(size=1.5) +
+  geom_beeswarm(cex=2, size=2)+
   scale_color_npg()+
-  xlab("") + ylab("Age at experiment d0")+
+  xlab("") + ylab("Age in days")+
+  scale_y_continuous(limits=c(21,1050))+
   labs(color="Stability Category")+
-  theme(text = element_text(size = 10), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 agestab_plot
 ```
 ```{r}
@@ -130,12 +157,12 @@ r.squaredGLMM(m.agestab)
 ```{r grouped plot}
 
 figx <- plot_grid(
-  fig2, agestab_plot,
+  fig2.1, agestab_plot,
   labels="AUTO", ncol=2,
   label_size = 12
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.tiff", figx, units="in", width = 7, height = 4, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig2_stab_plots.png", figx, units="in", width = 9, height = 6, device='png', dpi=300)
 
 figx
 ```

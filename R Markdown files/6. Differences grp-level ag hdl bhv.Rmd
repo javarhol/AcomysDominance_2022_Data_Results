@@ -13,9 +13,6 @@ library(hms)
 library(ggplot2)
 library(ggsci)
 library(cowplot)
-library(ggthemr)
-
-ggthemr('flat')
 
 library(lme4)
 library(lmerTest)
@@ -276,30 +273,33 @@ summary(m.age)
 
 #plots
 ```{r}
-grp_plot <- ggplot(males, aes(Behavior, prop_cage, fill=as.factor(GrpSize), color=as.factor(GrpSize)))+
-  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 0.05)+
-  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
-  scale_y_continuous(limits = c(0,1))+
+grp_plot <- ggplot(males)+
+  stat_summary(mapping=aes(Behavior, prop_cage, fill=as.factor(GrpSize)), geom="col", fun="mean", position=position_dodge2(width=0.90))+
+  #geom_point(mapping=aes(Behavior, prop_cage, group=as.factor(GrpSize)), size=0.5, color="black", position=position_dodge2(width=0.90))+
+  stat_summary(mapping=aes(Behavior, prop_cage, group=as.factor(GrpSize)), geom="errorbar", fun.data="mean_se", color="black", size=0.5, position=position_dodge2(width=0.90))+
+  scale_y_continuous(limits = c(0,1), expand=c(0,0))+
   scale_color_manual(values=c("#00A087FF", "#3C5488FF"))+
   scale_fill_manual(values=c("#00A087FF", "#3C5488FF"))+
   ylab("proportion of \nbehavior per cage") + xlab("")+
-  guides(fill=guide_legend("Group Size"), color=guide_legend("Group Size"))
+  guides(fill=guide_legend(str_wrap("Group Size Males", 5)), color=guide_legend(str_wrap("Group Size", 5))) + theme_cowplot()
 
-age_plot <- ggplot(females, aes(Behavior, prop_cage, fill=Age, color=Age))+
-  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.5), binwidth = 0.05)+
-  stat_summary(fun=median, size=0.5, geom="crossbar", width=0.5, position=position_dodge(width=0.5))+
-  scale_y_continuous(limits = c(0,1))+
+
+age_plot <- ggplot(females)+
+  stat_summary(mapping=aes(Behavior, prop_cage, fill=Age), geom="col", fun="mean", position=position_dodge2(width=0.90))+
+  #geom_point(mapping=aes(Behavior, prop_cage, group=Age), size=0.5, color="black", position=position_dodge2(width=0.90))+
+  stat_summary(mapping=aes(Behavior, prop_cage, group=Age), geom="errorbar", fun.data="mean_se", color="black", size=0.5, position=position_dodge2(width=0.90))+
+  scale_y_continuous(limits = c(0,1), expand=c(0,0))+
   scale_color_manual(values=c("#F39B7FFF", "#8491B4FF"))+
   scale_fill_manual(values=c("#F39B7FFF", "#8491B4FF"))+
   ylab("proportion of \nbehavior per cage") + xlab("")+
-  labs(fill="Age", color="Age")
+  guides(fill=guide_legend(str_wrap("Age Females", 5)), color=guide_legend(str_wrap("Age Females", 5)))+theme_cowplot()
 
 fig4 <- plot_grid(
   grp_plot, age_plot,
   labels="AUTO", ncol=1, align="v"
 )
 
-ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig4_nightbhv_plots.tiff", fig4, units="in", width = 6.5, height = 4, device='tiff', dpi=300)
+ggsave("/Users/justinvarholick/Documents/GitHub/AcomysDominance_2022_Data_Results/R generated figures/Fig4_nightbhv_plots.png", fig4, units="in", width = 9, height = 6, device='png', dpi=300)
 
 fig4
 ```
